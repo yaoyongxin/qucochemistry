@@ -22,9 +22,7 @@ import scipy as sp
 import time
 
 from qucochemistry.utils import qubitop_to_pyquilpauli, pyquilpauli_to_qubitop
-from qucochemistry.circuits import augment_program_with_memory_values, pauli_meas, ref_state_preparation_circuit, \
-    uccsd_ansatz_circuit, uccsd_ansatz_circuit_parametric
-
+from qucochemistry.circuits import augment_program_with_memory_values, pauli_meas, ref_state_preparation_circuit, uccsd_ansatz_circuit, uccsd_ansatz_circuit_parametric
 
 class VQEexperiment:
 
@@ -354,9 +352,7 @@ class VQEexperiment:
 
     def start_vqe(self, theta=None, maxiter: int = 0, options: dict = {}):
         """
-        This method starts the VQE algorithm. User can supply an initial circuit setting, otherwise the stored initial
-        settings are used. the maxiter refers to the scipy optimizer number of iterations. (which may well be much less
-         than the number of function calls)
+        This method starts the VQE algorithm. User can supply an initial circuit setting, otherwise the stored initial settings are used. the maxiter refers to the scipy optimizer number of iterations. (which may well be much less than the number of function calls)
 
         :param theta: list or np.ndarray initial angles for the circuit to start the optimizer in.
         :param maxiter: int:  maximum number of iterations
@@ -424,8 +420,9 @@ class VQEexperiment:
 
     def get_qubit_req(self):
         """
-        - assumes all Pauli term indices up to the largest one are in use!
-        - assumes pauli_list has been loaded properly
+        This method computes the number of qubits required to represent the desired Hamiltonian:
+        * assumes all Pauli term indices up to the largest one are in use!
+        * assumes pauli_list has been loaded properly
         :return: int: number of qubits required in the circuit, as set by the Hamiltonian terms' indices.
         """
 
@@ -481,8 +478,8 @@ class VQEexperiment:
 
     def set_custom_ref_preparation(self, prog: Program = Program()):
         """
-        :param prog: Program(): set a custom reference state preparation circuit as a program. All variational angles
-        must be parametric !
+        :param prog: Program(): set a custom reference state preparation circuit as a program. All variational angles must be parametric.
+
         """
         if self.method == 'linalg':
             raise TypeError('method is linalg. Please set custom unitary instead of custom circuit.')

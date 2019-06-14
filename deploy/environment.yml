@@ -73,8 +73,6 @@ dependencies:
     - scipy==1.2.0
     - send2trash==1.5.0
     - six==1.12.0
-    - sphinx==2.1.1
-    - sphinx-rtd-theme==0.4.3
     - terminado==0.8.2
     - testpath==0.4.2
     - tornado==6.0.2
@@ -84,5 +82,3 @@ dependencies:
     - wcwidth==0.1.7
     - webencodings==0.5.1
     - widgetsnbextension==3.4.2
-prefix: /home/mdagrada/Software/local/miniconda3/envs/qucochemistry
-

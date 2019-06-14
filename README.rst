@@ -11,7 +11,7 @@ To start using Qu & Co Chemistry library, you need to first install the Rigetti'
 
 You can install the library in two different ways.
 
-**From PyPi**
+**From PyPi or conda**
 
 Using pip install the latest version from PyPi in user mode:
 
@@ -19,14 +19,11 @@ Using pip install the latest version from PyPi in user mode:
 
     python -m pip install --user qucochemistry
 
-Alternatively, the library can be install within a Conda virtual environment:
+Alternatively, the library can be installed within a conda environment:
 
 .. code-block:: bash
 
-    conda env create -n <env_name>
-    conda activate <env_name>
-    conda install pip
-    pip install qucochemistry
+    conda install -c quco qucochemistry
 
 **From source**
 
@@ -41,19 +38,23 @@ Alternatively, install within a Conda environment using the provided environment
 
 .. code-block:: bash
 
-    conda env -n <env_name> -f deploy/conda_env.yml
+    conda env -n <env_name> -f deploy/environment.yml
     conda activate <env_name>
-    pip install -e .
+    python -m pip install -e .
+
 
 Usage
 ------------
 
-In order to use this library within your program, Rigetti's quantum virtual machine and quantum compilers must be running in the background. Provided that the Rigetti's `Forest SDK <https://www.rigetti.com/forest>`__ is correctly installed, you can do so with the following commands:
+In order to use this library within your program, Rigetti's quantum virtual machine and quantum compilers must be running in the background. 
+If you run on Linux or OSX and the Rigetti's `Forest SDK <https://www.rigetti.com/forest>`__ is correctly installed, you can start them in the background with the following commands:
 
 .. code-block:: bash
 
     screen -dm -S qvm qvm -S
     screen -dm -S quilc quilc -S
+
+On Windows just execute :code:`qvm -S` and :code:`quilc -S` commands in two separate cmd terminals. 
 
 For more details on how to use the library, several tutorials on Jupyter notebook are available `here <https://github.com/qu-co/qucochemistry/tree/master/examples/Tutorial_Single_molecule_end_to_end_VQE.ipynb>`__.
 To be able run end-to-end programs, you should install PySCF and OpenFermion-PySCF as additional dependencies with pip:

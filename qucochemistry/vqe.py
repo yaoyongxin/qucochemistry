@@ -24,6 +24,7 @@ import time
 from qucochemistry.utils import qubitop_to_pyquilpauli, pyquilpauli_to_qubitop
 from qucochemistry.circuits import augment_program_with_memory_values, pauli_meas, ref_state_preparation_circuit, uccsd_ansatz_circuit, uccsd_ansatz_circuit_parametric
 
+
 class VQEexperiment:
 
     def __init__(self, qc: Union[QuantumComputer, None] = None, hamiltonian: Union[PauliSum, List[PauliTerm], None] =

@@ -1,0 +1,6 @@
+numpy
+openfermion
+scipy==1.2.0
+pyquil
+sphinx
+sphinx-rtd-theme

@@ -9,36 +9,62 @@ The `Qu & Co Chemistry <http://www.quandco.com>`__ package is an open source lib
 Installation
 ------------
 
-To start using Qu & Co Chemistry, first install Rigetti's `Forest SDK
-<https://www.rigetti.com/forest>`__, then install `pyQuil
-<https://github.com/rigetti/pyquil>`__ and `rpcq
-<https://github.com/rigetti/rpcq>`__
-Then, to install the latest versions of Qu & Co Chemistry (in development mode):
+To start using Qu & Co Chemistry library, you need to first install the Rigetti's `Forest SDK <https://www.rigetti.com/forest>`__ which contains both the Quantum Virtual Machine and the Rigetti's quantum compiler.
+
+You can install the library in two different ways.
+
+**From PyPi**
+
+Using pip install the latest version from PyPi in user mode:
 
 .. code-block:: bash
 
-  git clone https://github.com/qu-co/qucochemistry
-  cd qucochemistry
-  python -m pip install -e .
+    python -m pip install --user qucochemistry
 
-Alternatively, to install the latest PyPI releases as libraries (in user mode):
+Alternatively, the library can be install within a Conda virtual environment:
 
 .. code-block:: bash
 
-  python -m pip install --user qucochemistry
+    conda env create -n <env_name>
+    conda activate <env_name>
+    conda install pip
+    pip install qucochemistry
 
-or in your Anaconda environment using
+**From source**
+
+Using pip, install the library in user mode:
 
 .. code-block:: bash
 
-  conda install qucochemistry
+    python -m pip install --user -r deploy/requirements.txt
+    python -m pip install --user -e .
 
-Also be sure to take a look at the `ipython notebook demo <https://github.com/qu-co/qucochemistry/tree/master/examples/Tutorial_Single_molecule_end_to_end_VQE.ipynb>`__.
-To be able run end-to-end programs, please consider installing PySCF and OpenFermion-PySCF using pip via
+Alternatively, install within a Conda environment using the provided environment:
+
+.. code-block:: bash
+
+    conda env -n <env_name> -f deploy/conda_env.yml
+    conda activate <env_name>
+    pip install -e .
+
+Usage
+------------
+
+In order to use this library within your program, Rigetti's quantum virtual machine and quantum compilers must be running in the background. Provided that the Rigetti's `Forest SDK <https://www.rigetti.com/forest>`__ is correctly installed, you can do so with the following commands:
+
+.. code-block:: bash
+
+    screen -dm -S qvm qvm -S
+    screen -dm -S quilc quilc -S
+
+For more details on how to use the library, several tutorials on Jupyter notebook are available `here <https://github.com/qu-co/qucochemistry/tree/master/examples/Tutorial_Single_molecule_end_to_end_VQE.ipynb>`__.
+To be able run end-to-end programs, you should install PySCF and OpenFermion-PySCF as additional dependencies with pip:
 
 .. code-block:: bash
 
   python -m pip install --user openfermionpyscf pyscf
+
+If you created the Conda environment as described in the previous section, you should be able to install these dependencies within the environment with the same command (without the :code:`--user` flag).
 
 How to contribute
 -----------------
@@ -67,7 +93,3 @@ Authors
 `Vincent Elfving <https://github.com/vincentelfving>`__ (Qu & Co B.V.)
 
 We are happy to include future contributors as authors on later Qu & Co Chemistry releases.
-
-Disclaimer
-----------
-Copyright 2019

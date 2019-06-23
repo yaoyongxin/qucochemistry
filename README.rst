@@ -47,7 +47,8 @@ Usage
 ------------
 
 In order to use this library within your program, Rigetti's quantum virtual machine and quantum compilers must be running in the background. 
-If you run on Linux or OSX and the Rigetti's `Forest SDK <https://www.rigetti.com/forest>`__ is correctly installed, you can start them in the background with the following commands:
+If you run on Linux or OSX and the Rigetti's `Forest SDK <https://www.rigetti.com/forest>`__ is correctly installed, you can start them in the 
+background with the following commands:
 
 .. code-block:: bash
 
@@ -63,7 +64,19 @@ To be able run end-to-end programs, you should install PySCF and OpenFermion-PyS
 
   python -m pip install --user openfermionpyscf pyscf
 
-If you created the Conda environment as described in the previous section, you should be able to install these dependencies within the environment with the same command (without the :code:`--user` flag).
+If you created the Conda environment as described in the previous section, you should be able to install these dependencies within 
+the environment with the same command (without the :code:`--user` flag).
+
+Development
+-----------------
+
+The unit tests are build using the `pytest` framework. In order to run them, install the qucochemistry package using the previous instruction
+and then execute in the root project directory:
+
+.. code-block:: bash
+
+  pytest -v 
+
 
 How to contribute
 -----------------

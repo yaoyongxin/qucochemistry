@@ -377,7 +377,9 @@ class VQEexperiment:
 
     def start_vqe(self, theta=None, maxiter: int = 0, options: dict = {}):
         """
-        This method starts the VQE algorithm. User can supply an initial circuit setting, otherwise the stored initial settings are used. the maxiter refers to the scipy optimizer number of iterations. (which may well be much less than the number of function calls)
+        This method starts the VQE algorithm. User can supply an initial circuit setting, otherwise the stored
+        initial settings are used. the maxiter refers to the scipy optimizer number of iterations
+        (which may well be much less than the number of function calls)
 
         :param [list(),numpy.ndarray] theta: list of initial angles for the circuit to start the optimizer in.
         :param int maxiter: maximum number of iterations

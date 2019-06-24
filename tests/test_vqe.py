@@ -16,7 +16,9 @@ HAMILTONIAN = [
 APPROX_GS = -5.792
 APPROX_EC = -0.9
 NSHOTS = 10000
+NQUBITS = 2
 
+# utilities
 
 def start_qvm(fn):
     """
@@ -33,26 +35,39 @@ def start_qvm(fn):
             return fn(*args)
     return decorator.decorator(wrapper, fn)
 
+# tests
 
 @pytest.fixture
 def hamiltonian():
     """
-    Define an hamiltonian as a sum of Pauli matrices
+    Define an hamiltonian as a sum of Pauli matrices given as
+    constant input for the algorithm
     """
     hamilt = PauliSum([PauliTerm(*x) for x in HAMILTONIAN])
     return hamilt
 
-
-@start_qvm
-def test_hamiltonian_gs(hamiltonian):
+@pytest.fixture
+def custom_vqe(hamiltonian):
+    """
+    Initialize a VQE experiment with a custom hamiltonian
+    """
     vqe = VQEexperiment(hamiltonian=hamiltonian,
                         method='WFS',
                         strategy='custom_program',
                         parametric=True,
                         tomography=True,
                         shotN=NSHOTS)
+    return vqe
 
-    gs = vqe.get_exact_gs()
-    ec = vqe.objective_function()
+#TODO: test also other objective function computation methods
+
+@start_qvm
+def test_hamiltonian_gs(custom_vqe):
+    gs = custom_vqe.get_exact_gs()
+    ec = custom_vqe.objective_function()
     assert np.isclose(gs, APPROX_GS, atol=1e-3)
     assert np.isclose(ec, APPROX_EC, atol=1e-1)
+
+def test_get_qubit_req(custom_vqe):
+    nq = custom_vqe.get_qubit_req()
+    assert nq == NQUBITS

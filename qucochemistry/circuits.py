@@ -17,10 +17,31 @@ from qucochemistry.utils import qubitop_to_pyquilpauli, uccsd_singlet_generator_
 
 
 def pauli_meas(idx, op):
-    """
+    r"""
     Generate gate sequence to measure in the eigenbasis of a Pauli operator, assuming
-    we are only able to measure in the Z eigenbasis.
+    we are only able to measure in the Z eigenbasis. The available operations are the
+    following:
 
+    .. math::
+
+        'X' = \begin{bmatrix}
+                0 & \frac{-\pi}{2} \\
+                \frac{-\pi}{2} & 0 
+            \end{bmatrix}
+
+        'Y' = \begin{bmatrix}
+                0 & \frac{-i\pi}{2} \\
+                \frac{i\pi}{2} & 0 
+            \end{bmatrix}
+
+
+    and :math:`'Z' = 'I' = \mathbb{I}`.
+
+    :param Program idx: the input Pauli matrix
+    :param str op: enumeration ('X', 'Y', 'Z', 'I') representing the axis of the given Pauli matrix
+
+    :return: a `pyquil` Program representing the Pauli matrix projected onto the Z eigenbasis.
+    :rtype: Program
     """
     if op == 'X':
         return Program(RY(-np.pi / 2, idx))
@@ -79,10 +100,13 @@ def ref_state_preparation_circuit(molecule, ref_type='HF', cq=None):
 
     """
     This function returns a program which prepares a reference state to begin from with a Variational ansatz.
-    :param molecule: MolecularData(): molecule data object containing information on HF state.
+
+    :param molecule: MolecularData: molecule data object containing information on HF state.
     :param ref_type: (string): type of reference state desired
     :param cq: list: (optional) list of qubit labels if different from standard 0 to N-1 convention
-    :return: Program(): pyquil program which prepares the reference state
+
+    :return: pyquil program which prepares the reference state
+    :rtype: Program
     """
 
     if ref_type != 'HF':
@@ -107,13 +131,17 @@ def ref_state_preparation_circuit(molecule, ref_type='HF', cq=None):
 
 
 def uccsd_ansatz_circuit(packed_amplitudes, n_orbitals, n_electrons, cq=None):
+    # TODO apply logical re-ordering to Fermionic non-parametric way too!
     """
     This function returns a variational ansatz. Currently only supports UCCSD
+
     :param packed_amplitudes: amplitudes t_ij and t_ijkl of the T_1 and T_2 operators of the UCCSD ansatz
     :param n_orbitals: number of *spatial* orbitals
     :param n_electrons: number of electrons considered
-    :param cq: list of qubit label order # TODO apply logical re-ordering to Fermionic non-parametric way too!
-    :return: (pyQuil Program) variational ansatz
+    :param cq: list of qubit label order 
+
+    :return: variational ansatz
+    :rtype: Program
     """
 
     # Fermionic UCCSD
@@ -135,10 +163,13 @@ def uccsd_ansatz_circuit(packed_amplitudes, n_orbitals, n_electrons, cq=None):
 
 def uccsd_ansatz_circuit_parametric(n_orbitals, n_electrons, cq=None):
     """
+
     :param n_orbitals: number of spatial orbitals in the molecule (for building UCCSD singlet generator)
     :param n_electrons: number of electrons in the molecule
     :param cq: custom qubits
-    :return: Program() prog: program which prepares the UCCSD T_1 + T_2 propagator with a spin-singlet assumption.
+    
+    :return: program which prepares the UCCSD :math:`T_1 + T_2` propagator with a spin-singlet assumption.
+    :rtype: Program
     """
     # determine number of required parameters
     trotter_steps = 1

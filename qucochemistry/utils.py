@@ -5,17 +5,18 @@ import numpy as np
 import itertools
 
 """
-The utility functions qubitop_to_pyquilpauli() and pyquilpauli_to_qubitop() are from forestopenfermion, removing the 
-need to install that package as a dependency.
-The utility function uccsd_singlet_generator_with_indices() is used to keep track of indices when preparing a parametric
- UCCSD preparation circuit
-"""
+The utility functions qubitop_to_pyquilpauli() and pyquilpauli_to_qubitop() are from forestopenfermion, removing the need to install that package as a dependency.
 
+The utility function uccsd_singlet_generator_with_indices() is used to keep track of indices when preparing a parametric UCCSD preparation circuit
+
+"""
 
 def qubitop_to_pyquilpauli(qubit_operator):
     """
     Convert a OpenFermion QubitOperator to a PauliSum
+
     :param QubitOperator qubit_operator: OpenFermion QubitOperator to convert to a pyquil.PauliSum
+    
     :return: PauliSum representing the qubit operator
     :rtype: PauliSum
     """
@@ -37,9 +38,11 @@ def qubitop_to_pyquilpauli(qubit_operator):
 def pyquilpauli_to_qubitop(pyquil_pauli):
     """
     Convert a pyQuil PauliSum to a OpenFermion QubitOperator
-    :param [PauliTerm, PauliSum] pyquil_pauli: pyQuil PauliTerm or PauliSum to convert to an
-    OpenFermion QubitOperator
-    :returns: a QubitOperator representing the PauliSum or PauliTerm
+    
+    :param pyquil_pauli: pyQuil PauliTerm or PauliSum to convert to an OpenFermion QubitOperator
+    :type pyquil_pauli: [PauliTerm, PauliSum]
+    
+    :returns: a QubitOperator representing the PauliSum or PauliTerm 
     :rtype: QubitOperator
     """
     if not isinstance(pyquil_pauli, (PauliSum, PauliTerm)):
@@ -60,23 +63,15 @@ def pyquilpauli_to_qubitop(pyquil_pauli):
 
 
 def uccsd_singlet_generator_with_indices(n_qubits, n_electrons):
-    """Create a singlet UCCSD generator for a system with n_electrons, but return a 'list of Fermion operators',
-     for each term in packed_amplitudes, name it a list called generator, instead of a 'sum' called generator.
-     also returns a list of indices matching each term
+    """Create a singlet UCCSD generator for a system with n_electrons, but return a `list of Fermion operators`, for each term in packed_amplitudes, name it a list called generator, instead of a `sum` called generator. It also returns a list of indices matching each term. This function generates a FermionOperator for a UCCSD generator designed to act on a single reference state consisting of n_qubits spin orbitals and n_electrons electrons, that is a spin singlet operator, meaning it conserves spin. 
 
-    This function generates a FermionOperator for a UCCSD generator designed
-        to act on a single reference state consisting of n_qubits spin orbitals
-        and n_electrons electrons, that is a spin singlet operator, meaning it
-        conserves spin.
+    :param int n_qubits: Number of spin-orbitals used to represent the system, which also corresponds to number of qubits in a non-compact map.
+    :type n_qubits: int
+    :param n_electrons: Number of electrons in the physical system.
+    :type n_electrons: int
 
-    Args:
-        n_qubits(int): Number of spin-orbitals used to represent the system,
-            which also corresponds to number of qubits in a non-compact map.
-        n_electrons(int): Number of electrons in the physical system.
-
-    Returns:
-        generator(FermionOperator): Generator of the UCCSD operator that
-            builds the UCCSD wavefunction.
+    :return: Generator of the UCCSD operator that builds the UCCSD wavefunction.
+    :rtype: list(FermionOperator)
     """
     if n_qubits % 2 != 0:
         raise ValueError('The total number of spin-orbitals should be even.')

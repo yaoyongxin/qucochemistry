@@ -37,7 +37,7 @@ def pauli_meas(idx, op):
 
     and :math:`'Z' = 'I' = \mathbb{I}`.
 
-    :param Program idx: the input Pauli matrix
+    :param int idx: the qubit index on which the measurement basis rotation is to be performed.
     :param str op: enumeration ('X', 'Y', 'Z', 'I') representing the axis of the given Pauli matrix
 
     :return: a `pyquil` Program representing the Pauli matrix projected onto the Z eigenbasis.
@@ -54,6 +54,17 @@ def pauli_meas(idx, op):
 
 
 def augment_program_with_memory_values(quil_program, memory_map):
+    """
+    This function allocates the classical memory values (gate angles) to a parametric quil program in order to use it
+    on a Numpy-based simulator
+
+    :param Program quil_program: parametric quil program which would require classical memory allocation
+    :param Dict memory_map: dictionary with as keys the MemoryReference or String descrbing the classical memory, and
+        with items() an array of values for that classical memory
+
+    :return: quil program with gate angles from memory_map allocated to the (originally parametric) program
+    :rtype: Program
+    """
     p = Program()
 
     # this function allocates the memory values for a parametric program correctly...
@@ -77,13 +88,14 @@ def augment_program_with_memory_values(quil_program, memory_map):
 
 def exponentiate_commuting_pauli_sum_parametric(pauli_sum, term_dict, memref):
     """
-    Returns a Program() (NOT A function!!) that maps all substituent PauliTerms and sums them into a program. NOTE: Use
+    Returns a Program() (NOT A function) that maps all substituent PauliTerms and sums them into a program. NOTE: Use
     this function with care. Substituent PauliTerms in pauli_sum should commute for this to work correctly!
 
     :param List pauli_sum: list of Pauli terms to exponentiate.
     :param Dict term_dict: Dictionary containing as keys the Pauliterm frozensets, and as values the indices in
-     packed_amplitudes (and in Memoreference pointer, same index!), corresponding to the same index in pauli_sum list
+        packed_amplitudes (and in Memoreference pointer, same index!), corresponding to the same index in pauli_sum list
     :param MemoryReference memref: memory reference which should be inserted to generate the program
+
     :returns: A program that parametrizes the exponential.
     :rtype: Program()
     """
@@ -101,16 +113,16 @@ def ref_state_preparation_circuit(molecule, ref_type='HF', cq=None):
     """
     This function returns a program which prepares a reference state to begin from with a Variational ansatz.
 
-    :param molecule: MolecularData: molecule data object containing information on HF state.
-    :param ref_type: (string): type of reference state desired
-    :param cq: list: (optional) list of qubit labels if different from standard 0 to N-1 convention
+    :param MolecularData molecule: molecule data object containing information on HF state.
+    :param str ref_type: type of reference state desired
+    :param list() cq: (optional) list of qubit labels if different from standard 0 to N-1 convention
 
     :return: pyquil program which prepares the reference state
     :rtype: Program
     """
 
     if ref_type != 'HF':
-        raise ValueError('Currently only supports ref_type = `HF`. More to be added in future releases.')
+        raise NotImplementedError('Currently only supports ref_type = `HF`. More to be added in future releases.')
 
     if not isinstance(molecule, MolecularData):
         raise TypeError('molecule should be of type MolecularData, data class from the OpenFermion.hamiltonians module')
@@ -133,14 +145,17 @@ def ref_state_preparation_circuit(molecule, ref_type='HF', cq=None):
 def uccsd_ansatz_circuit(packed_amplitudes, n_orbitals, n_electrons, cq=None):
     # TODO apply logical re-ordering to Fermionic non-parametric way too!
     """
-    This function returns a variational ansatz. Currently only supports UCCSD
+    This function returns a UCCSD variational ansatz with hard-coded gate angles. The number of orbitals specifies the
+    number of qubits, the number of electrons specifies the initial HF reference state which is assumed was prepared.
+    The packed_amplitudes input defines which gate angles to apply for each CC operation. The list cq is an optional
+    list which specifies the qubit label ordering which is to be assumed.
 
-    :param packed_amplitudes: amplitudes t_ij and t_ijkl of the T_1 and T_2 operators of the UCCSD ansatz
-    :param n_orbitals: number of *spatial* orbitals
-    :param n_electrons: number of electrons considered
-    :param cq: list of qubit label order 
+    :param list() packed_amplitudes: amplitudes t_ij and t_ijkl of the T_1 and T_2 operators of the UCCSD ansatz
+    :param int n_orbitals: number of *spatial* orbitals
+    :param int n_electrons: number of electrons considered
+    :param list() cq: list of qubit label order
 
-    :return: variational ansatz
+    :return: circuit which prepares the UCCSD variational ansatz
     :rtype: Program
     """
 
@@ -163,10 +178,14 @@ def uccsd_ansatz_circuit(packed_amplitudes, n_orbitals, n_electrons, cq=None):
 
 def uccsd_ansatz_circuit_parametric(n_orbitals, n_electrons, cq=None):
     """
+    This function returns a UCCSD variational ansatz with hard-coded gate angles. The number of orbitals specifies the
+    number of qubits, the number of electrons specifies the initial HF reference state which is assumed was prepared.
+    The list cq is an optional list which specifies the qubit label ordering which is to be assumed.
 
-    :param n_orbitals: number of spatial orbitals in the molecule (for building UCCSD singlet generator)
-    :param n_electrons: number of electrons in the molecule
-    :param cq: custom qubits
+
+    :param int n_orbitals: number of spatial orbitals in the molecule (for building UCCSD singlet generator)
+    :param int n_electrons: number of electrons in the molecule
+    :param list() cq: custom qubits
     
     :return: program which prepares the UCCSD :math:`T_1 + T_2` propagator with a spin-singlet assumption.
     :rtype: Program

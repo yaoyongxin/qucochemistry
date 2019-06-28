@@ -5,15 +5,17 @@ import numpy as np
 import itertools
 
 """
-The utility functions qubitop_to_pyquilpauli() and pyquilpauli_to_qubitop() are from forestopenfermion, removing the need to install that package as a dependency.
+The utility functions qubitop_to_pyquilpauli() and pyquilpauli_to_qubitop() are from forestopenfermion, removing the 
+need to install that package as a dependency.
 
-The utility function uccsd_singlet_generator_with_indices() is used to keep track of indices when preparing a parametric UCCSD preparation circuit
+The utility function uccsd_singlet_generator_with_indices() is used to keep track of indices when preparing a parametric
+ UCCSD preparation circuit
 
 """
 
 def qubitop_to_pyquilpauli(qubit_operator):
     """
-    Convert a OpenFermion QubitOperator to a PauliSum
+    Convert an OpenFermion QubitOperator to a PauliSum
 
     :param QubitOperator qubit_operator: OpenFermion QubitOperator to convert to a pyquil.PauliSum
     
@@ -37,7 +39,7 @@ def qubitop_to_pyquilpauli(qubit_operator):
 
 def pyquilpauli_to_qubitop(pyquil_pauli):
     """
-    Convert a pyQuil PauliSum to a OpenFermion QubitOperator
+    Convert a pyQuil PauliSum to an OpenFermion QubitOperator
     
     :param pyquil_pauli: pyQuil PauliTerm or PauliSum to convert to an OpenFermion QubitOperator
     :type pyquil_pauli: [PauliTerm, PauliSum]
@@ -65,7 +67,7 @@ def pyquilpauli_to_qubitop(pyquil_pauli):
 def uccsd_singlet_generator_with_indices(n_qubits, n_electrons):
     """Create a singlet UCCSD generator for a system with n_electrons, but return a `list of Fermion operators`, for each term in packed_amplitudes, name it a list called generator, instead of a `sum` called generator. It also returns a list of indices matching each term. This function generates a FermionOperator for a UCCSD generator designed to act on a single reference state consisting of n_qubits spin orbitals and n_electrons electrons, that is a spin singlet operator, meaning it conserves spin. 
 
-    :param int n_qubits: Number of spin-orbitals used to represent the system, which also corresponds to number of qubits in a non-compact map.
+    :param n_qubits: Number of spin-orbitals used to represent the system, which also corresponds to number of qubits in a non-compact map.
     :type n_qubits: int
     :param n_electrons: Number of electrons in the physical system.
     :type n_electrons: int

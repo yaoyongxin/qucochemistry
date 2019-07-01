@@ -380,7 +380,7 @@ class VQEexperiment:
         
         if not isinstance(maxiter, int):
             raise TypeError('Max number of iterations, maxiter, should be a positive integer.')
-        elif maxiter < 0
+        elif maxiter < 0:
             raise ValueError('Max number of iterations, maxiter, should be positive.')
         
         # store historical values of the optimizer

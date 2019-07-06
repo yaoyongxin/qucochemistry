@@ -1,6 +1,6 @@
 from pyquil.paulis import PauliSum, PauliTerm
 from openfermion.ops import FermionOperator, down_index, up_index, QubitOperator
-from scipy.misc import comb
+from scipy.special import comb
 import numpy as np
 import itertools
 
@@ -12,6 +12,7 @@ The utility function uccsd_singlet_generator_with_indices() is used to keep trac
  UCCSD preparation circuit
 
 """
+
 
 def qubitop_to_pyquilpauli(qubit_operator):
     """
@@ -65,7 +66,11 @@ def pyquilpauli_to_qubitop(pyquil_pauli):
 
 
 def uccsd_singlet_generator_with_indices(n_qubits, n_electrons):
-    """Create a singlet UCCSD generator for a system with n_electrons, but return a `list of Fermion operators`, for each term in packed_amplitudes, name it a list called generator, instead of a `sum` called generator. It also returns a list of indices matching each term. This function generates a FermionOperator for a UCCSD generator designed to act on a single reference state consisting of n_qubits spin orbitals and n_electrons electrons, that is a spin singlet operator, meaning it conserves spin. 
+    """Create a singlet UCCSD generator for a system with n_electrons, but return a `list of Fermion operators`, for
+    each term in packed_amplitudes, name it a list called generator, instead of a `sum` called generator. It also
+    returns a list of indices matching each term. This function generates a FermionOperator for a UCCSD generator
+    designed to act on a single reference state consisting of n_qubits spin orbitals and n_electrons electrons,
+    that is a spin singlet operator, meaning it conserves spin.
 
     :param n_qubits: Number of spin-orbitals used to represent the system, which also corresponds to number of qubits in a non-compact map.
     :type n_qubits: int

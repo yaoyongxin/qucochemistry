@@ -1,16 +1,10 @@
 import pytest
 import os
-import re
-from dataclasses import dataclass
+from numpy import ceil as np_ceil
+from pyquil import Program
+from scipy.special import comb
 from openfermion import MolecularData
-from qucochemistry.circuits import uccsd_ansatz_circuit_parametric
-
-
-# WARNING: this feature requires Python 3.7
-@dataclass
-class GateRead:
-    name: str
-    qubits: list
+from qucochemistry.circuits import uccsd_ansatz_circuit_parametric, uccsd_ansatz_circuit
 
 
 @pytest.fixture
@@ -22,29 +16,35 @@ def sample_molecule():
 
 
 @pytest.fixture
-def h2_gates():
+def h2_programs(is_parametric):
     cwd = os.path.abspath(os.path.dirname(__file__))
-    fname = os.path.join(cwd, "resources", "H2.gates")
-    gates = []
+    name = "H2.gates_parametric" if is_parametric else "H2.gates"
+    fname = os.path.join(cwd, "resources", name)
     with open(fname, "r") as f:
-        lines = f.readlines()
-        for l in lines:
-            instruction = l.strip("\n").split(" ")
-            gate_name = re.match(r'\w+', instruction[0]).group(0)
-            qubits = [int(x) for x in instruction[1:]]
-            gates.append(GateRead(gate_name, qubits))
-    return gates
+        program_str = f.read()
+    return Program(program_str)
 
 
-def test_uccsd_ansatz_circuit_parametric(sample_molecule, h2_gates):
+@pytest.mark.parametrize('is_parametric', [True])
+def test_uccsd_ansatz_circuit_parametric(sample_molecule, h2_programs):
+
     ansatz = uccsd_ansatz_circuit_parametric(sample_molecule.n_orbitals, sample_molecule.n_electrons)
-    for i, ins in enumerate(ansatz.instructions):
-        if i == 0:
-            continue
-        gate = GateRead(ins.name, [int(x.out()) for x in ins.qubits])
-        assert h2_gates[i-1] == gate
+    assert isinstance(ansatz, Program)
+    assert ansatz.out() == h2_programs.out()
 
 
-def test_exponentiate_commuting_pauli_sum_parametric():
-    pass
+@pytest.mark.parametrize('is_parametric', [False])
+def test_uccsd_ansatz_circuit(sample_molecule, h2_programs):
 
+    n_spatial_orbitals = sample_molecule.n_orbitals
+    n_occupied = int(np_ceil(sample_molecule.n_electrons / 2))
+    n_virtual = n_spatial_orbitals - n_occupied
+    n_single_amplitudes = n_occupied * n_virtual
+    # make a mock-packed_amplitudes of length (2 * n_single_amplitudes)
+    packed_amplitudes = [1]*(2 * n_single_amplitudes + int(comb(n_single_amplitudes, 2)))
+
+    ansatz = uccsd_ansatz_circuit(packed_amplitudes, sample_molecule.n_orbitals,
+                                  sample_molecule.n_electrons)
+
+    assert isinstance(ansatz, Program)
+    assert ansatz.out() == h2_programs.out()

@@ -31,7 +31,8 @@ setup(
         'scipy==1.2.0',
         'openfermion==0.9.0',
         'pyquil==2.7.2',
-        'pytest'
+        'pytest',
+        'pytest-cov'
     ],
     packages=find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
     license="Apache 2",

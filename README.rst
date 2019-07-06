@@ -75,7 +75,9 @@ and then execute in the root project directory:
 
 .. code-block:: bash
 
-  pytest -v 
+  pytest -v --cov=qucochemistry
+
+An automatic code coverage report will be generated after running the above command.
 
 
 How to contribute

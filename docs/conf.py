@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.abspath('../qucochemistry'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'Qu&Co Quantum Chemistry Package'
+project = 'Qu & Co Quantum Chemistry Package'
 copyright = '2019, Vincent Elfving'
 author = 'Vincent Elfving'
 
@@ -58,3 +58,15 @@ html_static_path = ['_static']
 # -- Options for Latex output -------------------------------------------------
 
 latex_show_urls = 'footnote'
+
+# make sure the Class's init method documentation is included for every class in qucochemistry
+
+
+def skip(app, what, name, obj, would_skip, options):
+    if name == "__init__":
+        return False
+    return would_skip
+
+
+def setup(app):
+    app.connect("autodoc-skip-member", skip)

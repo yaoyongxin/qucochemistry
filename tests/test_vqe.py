@@ -1,79 +1,78 @@
+import os
 import pytest
 import numpy as np
-import decorator
-from pyquil.api import local_qvm
+from openfermion import MolecularData
 from pyquil.paulis import PauliTerm, PauliSum
 
 from qucochemistry.vqe import VQEexperiment
+from . utils import start_qvm, HAMILTONIAN, NSHOTS, NQUBITS
 
 # constants used by the tests
 
+CUSTOM_APPROX_GS = -5.792
+CUSTOM_APPROX_EC = -0.9
+HF_GS = -0.4665818495572751
 
-HAMILTONIAN = [
-    ('Z', 0, -3.2),
-    ('Z', 1, 2.3),
-    ('X', 0, 1.4)
-]
-APPROX_GS = -5.792
-APPROX_EC = -0.9
-NSHOTS = 10000
-NQUBITS = 2
-
-# utilities
-
-
-def start_qvm(fn):
-    """
-    This decorator ensures that in the the context where the decorated function is executed
-    the following processes are running:
-    >> qvm -S
-    >> quilc -S
-
-    They needed to compile and execute a program on the quantum virtual machine. When
-    the context is terminated also the processes are.
-    """
-    def wrapper(fn, *args):
-        with local_qvm():
-            return fn(*args)
-    return decorator.decorator(wrapper, fn)
 
 # tests
 
 
 @pytest.fixture
-def hamiltonian():
-    """
-    Define an hamiltonian as a sum of Pauli matrices given as
-    constant input for the algorithm
-    """
-    hamilt = PauliSum([PauliTerm(*x) for x in HAMILTONIAN])
-    return hamilt
+def vqe_strategy():
+    # default value for the strategy
+    return "custom_program"
 
 
 @pytest.fixture
-def custom_vqe(hamiltonian):
+def static_vqe(vqe_strategy, vqe_tomography):
     """
     Initialize a VQE experiment with a custom hamiltonian
+    given as constant input
     """
-    vqe = VQEexperiment(hamiltonian=hamiltonian,
-                        method='WFS',
-                        strategy='custom_program',
-                        parametric=True,
-                        tomography=True,
-                        shotN=NSHOTS)
-    return vqe
+    _vqe = None
+    if vqe_strategy == "custom_program":
+        custom_ham = PauliSum([PauliTerm(*x) for x in HAMILTONIAN])
+        _vqe = VQEexperiment(hamiltonian=custom_ham,
+                             method='WFS',
+                             strategy=vqe_strategy,
+                             parametric=True,
+                             tomography=vqe_tomography,
+                             shotN=NSHOTS)
+    elif vqe_strategy == "HF":
+        cwd = os.path.abspath(os.path.dirname(__file__))
+        fname = os.path.join(cwd, "resources", "H.hdf5")
+        molecule = MolecularData(filename=fname)
+        _vqe = VQEexperiment(molecule=molecule,
+                             method='WFS',
+                             strategy=vqe_strategy,
+                             parametric=False,
+                             tomography=vqe_tomography,
+                             shotN=NSHOTS)
+    return _vqe
 
-
-# TODO: test also other objective function computation methods
 
 @start_qvm
-def test_hamiltonian_gs(custom_vqe):
-    gs = custom_vqe.get_exact_gs()
-    ec = custom_vqe.objective_function()
-    assert np.isclose(gs, APPROX_GS, atol=1e-3)
-    assert np.isclose(ec, APPROX_EC, atol=1e-1)
+@pytest.mark.parametrize('vqe_tomography', [True, False])
+def test_static_custom_program_strategy(static_vqe):
+    gs = static_vqe.get_exact_gs()
+    ec = static_vqe.objective_function()
+    assert np.isclose(gs, CUSTOM_APPROX_GS, atol=1e-3)
+    assert np.isclose(ec, CUSTOM_APPROX_EC, atol=1e-1)
 
 
-def test_get_qubit_req(custom_vqe):
-    nq = custom_vqe.get_qubit_req()
+@start_qvm
+@pytest.mark.parametrize('vqe_tomography', [True, False])
+@pytest.mark.parametrize('vqe_strategy', ['HF'])
+def test_static_hf_strategy(static_vqe):
+    ec = static_vqe.objective_function()
+    gs = static_vqe.get_exact_gs()
+    assert np.isclose(ec, HF_GS, 1e-9)
+    assert np.isclose(ec, gs, 1e-9)
+
+
+@pytest.mark.parametrize('vqe_tomography', [True, False])
+@pytest.mark.parametrize('vqe_strategy', ['custom_program', 'HF'])
+def test_get_qubit_req(static_vqe):
+    nq = static_vqe.get_qubit_req()
     assert nq == NQUBITS
+

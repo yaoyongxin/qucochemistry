@@ -68,9 +68,3 @@ def test_pauli_to_quops(paulis):
         assert coeff == true_values[ind][0]
         assert qubit == true_qubits[ind]
         assert ops == true_values[ind][1]
-
-
-@pytest.mark.xfail
-def test_pauli_to_quops_failure():
-    _ = qubitop_to_pyquilpauli(QUBIT_OPS)
-    _ = pyquilpauli_to_qubitop(QUBIT_OPS)

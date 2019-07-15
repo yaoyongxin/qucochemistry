@@ -5,16 +5,28 @@ from openfermion import MolecularData
 from pyquil.paulis import PauliTerm, PauliSum
 
 from qucochemistry.vqe import VQEexperiment
-from . utils import start_qvm, HAMILTONIAN, NSHOTS, NQUBITS
+from . utils import *
 
 # constants used by the tests
 
 CUSTOM_APPROX_GS = -5.792
 CUSTOM_APPROX_EC = -0.9
 HF_GS = -0.4665818495572751
+UCCSD_GS = -1.1372701746609015
+UCCSD_EC = -1.1372701746609015
+
+ground_states = {
+    "HF": (-0.4665818495572751, -0.4665818495572751),
+    "UCCSD": (-1.1372701746609015, -1.1397672933805079),
+}
 
 
 # tests
+
+@pytest.fixture
+def vqe_tomography():
+    # default value for the tomography flag
+    return False
 
 
 @pytest.fixture
@@ -29,7 +41,9 @@ def static_vqe(vqe_strategy, vqe_tomography):
     Initialize a VQE experiment with a custom hamiltonian
     given as constant input
     """
+
     _vqe = None
+
     if vqe_strategy == "custom_program":
         custom_ham = PauliSum([PauliTerm(*x) for x in HAMILTONIAN])
         _vqe = VQEexperiment(hamiltonian=custom_ham,
@@ -48,6 +62,16 @@ def static_vqe(vqe_strategy, vqe_tomography):
                              parametric=False,
                              tomography=vqe_tomography,
                              shotN=NSHOTS)
+    elif vqe_strategy == "UCCSD":
+        cwd = os.path.abspath(os.path.dirname(__file__))
+        fname = os.path.join(cwd, "resources", "H2.hdf5")
+        molecule = MolecularData(filename=fname)
+        _vqe = VQEexperiment(molecule=molecule,
+                             method='WFS',
+                             strategy=vqe_strategy,
+                             parametric=False,
+                             tomography=vqe_tomography,
+                             shotN=NSHOTS)
     return _vqe
 
 
@@ -59,20 +83,24 @@ def test_static_custom_program_strategy(static_vqe):
     assert np.isclose(gs, CUSTOM_APPROX_GS, atol=1e-3)
     assert np.isclose(ec, CUSTOM_APPROX_EC, atol=1e-1)
 
+    custom_ham = PauliSum([PauliTerm(*x) for x in HAMILTONIAN2])
+    gs_with_ham = static_vqe.get_exact_gs(hamiltonian=custom_ham)
+    assert gs_with_ham != gs
+
 
 @start_qvm
 @pytest.mark.parametrize('vqe_tomography', [True, False])
-@pytest.mark.parametrize('vqe_strategy', ['HF'])
+@pytest.mark.parametrize('vqe_strategy', ['HF', 'UCCSD'])
 def test_static_hf_strategy(static_vqe):
     ec = static_vqe.objective_function()
     gs = static_vqe.get_exact_gs()
-    assert np.isclose(ec, HF_GS, 1e-9)
-    assert np.isclose(ec, gs, 1e-9)
+    assert np.isclose(gs, ground_states[static_vqe.strategy][0], atol=1e-2)
+    assert np.isclose(ec, ground_states[static_vqe.strategy][1], atol=1e-2)
 
 
 @pytest.mark.parametrize('vqe_tomography', [True, False])
-@pytest.mark.parametrize('vqe_strategy', ['custom_program', 'HF'])
+@pytest.mark.parametrize('vqe_strategy', ['custom_program', 'HF', 'UCCSD'])
 def test_get_qubit_req(static_vqe):
     nq = static_vqe.get_qubit_req()
-    assert nq == NQUBITS
+    assert nq == NQUBITS_H if static_vqe.strategy != 'UCCSD' else NQUBITS_H2
 

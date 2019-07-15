@@ -7,9 +7,15 @@ HAMILTONIAN = [
     ('X', 0, 1.4)
 ]
 
-NSHOTS = 10000
-NQUBITS = 2
+HAMILTONIAN2 = [
+    ('Z', 0, -5.2),
+    ('Z', 1, 2.3),
+    ('X', 0, 1.5)
+]
 
+NSHOTS = 10000
+NQUBITS_H = 2
+NQUBITS_H2 = 4
 
 def start_qvm(fn):
     """

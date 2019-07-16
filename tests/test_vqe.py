@@ -35,8 +35,9 @@ def vqe_strategy():
     return "custom_program"
 
 
+# TODO: this fixture should become a general utility functio since it is used also for other tests
 @pytest.fixture
-def static_vqe(vqe_strategy, vqe_tomography):
+def vqe(vqe_strategy, vqe_tomography):
     """
     Initialize a VQE experiment with a custom hamiltonian
     given as constant input
@@ -77,30 +78,30 @@ def static_vqe(vqe_strategy, vqe_tomography):
 
 @start_qvm
 @pytest.mark.parametrize('vqe_tomography', [True, False])
-def test_static_custom_program_strategy(static_vqe):
-    gs = static_vqe.get_exact_gs()
-    ec = static_vqe.objective_function()
+def test_static_custom_program_strategy(vqe):
+    gs = vqe.get_exact_gs()
+    ec = vqe.objective_function()
     assert np.isclose(gs, CUSTOM_APPROX_GS, atol=1e-3)
     assert np.isclose(ec, CUSTOM_APPROX_EC, atol=1e-1)
 
     custom_ham = PauliSum([PauliTerm(*x) for x in HAMILTONIAN2])
-    gs_with_ham = static_vqe.get_exact_gs(hamiltonian=custom_ham)
+    gs_with_ham = vqe.get_exact_gs(hamiltonian=custom_ham)
     assert gs_with_ham != gs
 
 
 @start_qvm
 @pytest.mark.parametrize('vqe_tomography', [True, False])
 @pytest.mark.parametrize('vqe_strategy', ['HF', 'UCCSD'])
-def test_static_hf_strategy(static_vqe):
-    ec = static_vqe.objective_function()
-    gs = static_vqe.get_exact_gs()
-    assert np.isclose(gs, ground_states[static_vqe.strategy][0], atol=1e-2)
-    assert np.isclose(ec, ground_states[static_vqe.strategy][1], atol=1e-2)
+def test_static_hf_strategy(vqe):
+    ec = vqe.objective_function()
+    gs = vqe.get_exact_gs()
+    assert np.isclose(gs, ground_states[vqe.strategy][0], atol=1e-2)
+    assert np.isclose(ec, ground_states[vqe.strategy][1], atol=1e-2)
 
 
 @pytest.mark.parametrize('vqe_tomography', [True, False])
 @pytest.mark.parametrize('vqe_strategy', ['custom_program', 'HF', 'UCCSD'])
-def test_get_qubit_req(static_vqe):
-    nq = static_vqe.get_qubit_req()
-    assert nq == NQUBITS_H if static_vqe.strategy != 'UCCSD' else NQUBITS_H2
+def test_get_qubit_req(vqe):
+    nq = vqe.get_qubit_req()
+    assert nq == NQUBITS_H if vqe.strategy != 'UCCSD' else NQUBITS_H2
 

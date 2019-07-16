@@ -13,7 +13,6 @@ from openfermion.utils import uccsd_singlet_generator, normal_ordered, uccsd_sin
     expectation, jw_hartree_fock_state
 from openfermion.transforms import jordan_wigner, get_sparse_operator, get_fermion_operator
 
-from scipy.optimize import minimize
 from scipy.sparse.linalg import expm_multiply
 
 import numpy as np
@@ -24,6 +23,7 @@ import time
 from qucochemistry.utils import qubitop_to_pyquilpauli, pyquilpauli_to_qubitop
 from qucochemistry.circuits import augment_program_with_memory_values, pauli_meas, ref_state_preparation_circuit, \
     uccsd_ansatz_circuit, uccsd_ansatz_circuit_parametric
+from qucochemistry.utils import minimizer
 
 
 class VQEexperiment:
@@ -417,8 +417,10 @@ class VQEexperiment:
 
         self.it_num = 0
         # run the classical optimizer with the quantum circuit evaluation as an objective function.
-        self.res = minimize(self.objective_function, starting_angles, method=self.optimizer,
-                            options={**base_options, **options})
+        # self.res = minimize(self.objective_function, starting_angles, method=self.optimizer,
+        #                     options={**base_options, **options})
+        self.res = minimizer(self.objective_function, starting_angles, method=self.optimizer,
+                             options={**base_options, **options})
 
         if self.verbose:
             print('VQE optimization took ' + '{0:.3f}'.format(time.time()-t0) + ' seconds to evaluate')

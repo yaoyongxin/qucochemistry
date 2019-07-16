@@ -1,5 +1,7 @@
 import decorator
+from pyquil import Program
 from pyquil.api import local_qvm
+from pyquil.gates import X, RY
 
 HAMILTONIAN = [
     ('Z', 0, -3.2),
@@ -17,6 +19,7 @@ NSHOTS = 10000
 NQUBITS_H = 2
 NQUBITS_H2 = 4
 
+
 def start_qvm(fn):
     """
     This decorator ensures that in the the context where the decorated function is executed
@@ -31,3 +34,14 @@ def start_qvm(fn):
         with local_qvm():
             return fn(*args)
     return decorator.decorator(wrapper, fn)
+
+
+def parametric_ansatz_program():
+    prog = Program()
+    theta = prog.declare('theta', memory_type='REAL', memory_size=1)
+    prog.inst(RY(theta[0], 0))
+    return prog
+
+
+def static_ansatz_program():
+    return Program(X(1))

@@ -13,11 +13,11 @@ You can install the library in two different ways.
 
 **From PyPi or conda**
 
-Using pip install the latest version from PyPi in user mode:
+Using pip install the latest version from PyPi within a virtual environment:
 
 .. code-block:: bash
 
-    python -m pip install --user qucochemistry
+    python -m pip install qucochemistry
 
 Alternatively, the library can be installed within a conda environment:
 
@@ -77,7 +77,15 @@ and then execute in the root project directory:
 
   pytest -v --cov=qucochemistry
 
-An automatic code coverage report will be generated after running the above command.
+An automatic code coverage report will be generated after running the above command. In order to visualize 
+the details of the code coverage for each module, an HTML report can be generated and rendered with your favorite
+browser
+
+
+.. code-block:: bash
+
+  pytest -v --cov=qucochemistry --cov-report html
+  firefox htmlcov/index.html
 
 
 How to contribute

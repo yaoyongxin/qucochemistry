@@ -6,6 +6,8 @@ from scipy.special import comb
 from openfermion import MolecularData
 from qucochemistry.circuits import uccsd_ansatz_circuit_parametric, uccsd_ansatz_circuit
 
+from . utils import h2_programs
+
 
 @pytest.fixture
 def sample_molecule():
@@ -13,16 +15,6 @@ def sample_molecule():
     fname = os.path.join(cwd, "resources", "H2.hdf5")
     molecule = MolecularData(filename=fname)
     return molecule
-
-
-@pytest.fixture
-def h2_programs(is_parametric):
-    cwd = os.path.abspath(os.path.dirname(__file__))
-    name = "H2.gates_parametric" if is_parametric else "H2.gates"
-    fname = os.path.join(cwd, "resources", name)
-    with open(fname, "r") as f:
-        program_str = f.read()
-    return Program(program_str)
 
 
 @pytest.mark.parametrize('is_parametric', [True])

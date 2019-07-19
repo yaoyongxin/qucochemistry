@@ -66,10 +66,14 @@ class VQEexperiment:
         """
 
         if isinstance(hamiltonian, PauliSum):
+            if molecule is not None:
+                raise TypeError('Please supply either a Hamiltonian object or a Molecule object, but not both.')            
             # Hamiltonian as a PauliSum, extracted to give a list instead
             self.pauli_list = hamiltonian.terms
             self.n_qubits = self.get_qubit_req()  # assumes 0-(N-1) ordering and every pauli index is in use
         elif isinstance(hamiltonian, List):
+            if molecule is not None:
+                raise TypeError('Please supply either a Hamiltonian object or a Molecule object, but not both.')  
             if len(hamiltonian) > 0:
                 if all([isinstance(term, PauliTerm) for term in hamiltonian]):
                     self.pauli_list = hamiltonian
@@ -214,6 +218,8 @@ class VQEexperiment:
 
         # prepare tomography experiment if necessary
         if self.tomography:
+            if self.method == 'linalg':
+                raise NotImplementedError('Tomography is not yet implemented for the linalg method.')
             self.compile_tomo_expts()
         else:
             # avoid having to re-calculate the PauliSum object each time, store it.
@@ -228,10 +234,7 @@ class VQEexperiment:
         elif self.method == 'Numpy':
             if self.parametric_way:
                 raise ValueError('NumpyWavefunctionSimulator() backend does not yet support parametric programs.')
-        elif self.method == 'linalg':
-            if self.tomography:
-                raise NotImplementedError('Tomography is not yet implemented for the linalg method.')
-
+        elif self.method == 'linalg':           
             if molecule is not None:
                 # sparse initial state vector from the MolecularData() object
                 self.initial_psi = jw_hartree_fock_state(self.molecule.n_electrons, 2*self.molecule.n_orbitals)
@@ -344,7 +347,7 @@ class VQEexperiment:
                 propagator = normal_ordered(uccsd_singlet_generator(packed_amps, 2 * self.molecule.n_orbitals,
                                                                     self.molecule.n_electrons,
                                                                     anti_hermitian=True))
-                qubit_propagator_matrix = get_sparse_operator(propagator, trunc=2)
+                qubit_propagator_matrix = get_sparse_operator(propagator, n_qubits=self.n_qubits))
                 uccsd_state = expm_multiply(qubit_propagator_matrix, self.initial_psi)
                 expected_uccsd_energy = expectation(self.hamiltonian_matrix, uccsd_state).real
                 E += expected_uccsd_energy

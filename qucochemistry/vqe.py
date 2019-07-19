@@ -213,6 +213,7 @@ class VQEexperiment:
             self.ref_state = ref_state_preparation_circuit(self.molecule, ref_type='HF', cq=self.custom_qubits)
             self.ansatz = Program()
         elif strategy is 'custom_program':
+            self.parametric_way = True
             self.ref_state = Program()
             self.ansatz = Program()
 

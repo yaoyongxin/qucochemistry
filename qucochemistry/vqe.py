@@ -239,7 +239,7 @@ class VQEexperiment:
                 # sparse initial state vector from the MolecularData() object
                 self.initial_psi = jw_hartree_fock_state(self.molecule.n_electrons, 2*self.molecule.n_orbitals)
                 # sparse operator from the MolecularData() object
-                self.hamiltonian_matrix = get_sparse_operator(self.H, trunc=2)
+                self.hamiltonian_matrix = get_sparse_operator(self.H, n_qubits=self.n_qubits)
             else:
                 self.hamiltonian_matrix = get_sparse_operator(pyquilpauli_to_qubitop(PauliSum(self.pauli_list)))
                 self.initial_psi = None

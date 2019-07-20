@@ -38,7 +38,7 @@ Alternatively, install within a Conda environment using the provided environment
 
 .. code-block:: bash
 
-    conda env -n <env_name> -f deploy/environment.yml
+    conda env create -n <env_name> -f deploy/environment.yml
     conda activate <env_name>
     python -m pip install -e .
 

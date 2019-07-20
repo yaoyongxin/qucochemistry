@@ -190,9 +190,6 @@ class VQEexperiment:
                                                        n_electrons=self.molecule.n_electrons)
             self.initial_packed_amps = amps
         else:
-            if strategy == 'HF' and not self.parametric_way:
-                print('warning: HF strategy only supports parametric way; for now setting self.parametric_way = True')
-                self.parametric_way = True
             # allocate empty initial angles for the circuit. modify later.
             self.initial_packed_amps = []
 
@@ -204,8 +201,6 @@ class VQEexperiment:
                 self.ansatz = uccsd_ansatz_circuit_parametric(self.molecule.n_orbitals, self.molecule.n_electrons,
                                                               cq=self.custom_qubits)
             else:
-                if self.custom_qubits is not None:  # TODO also implement the UCCSD non-parametric way for custom cq
-                    raise NotImplementedError('parametric circuits not yet implemented for UCCSD on custom lattice cq')
                 # in the non-parametric_way, the circuit has hard-coded angles for the gates.
                 self.ansatz = uccsd_ansatz_circuit(self.initial_packed_amps, self.molecule.n_orbitals,
                                                    self.molecule.n_electrons, cq=self.custom_qubits)
@@ -231,10 +226,14 @@ class VQEexperiment:
             if qc is None:
                 raise ValueError('Method is QC, please supply a valid QuantumComputer() object to the qc variable.')
         elif self.method == 'WFS':
-            pass
+            if (self.qc is not None) or (self.custom_qubits is not None):
+                raise ValueError('The WFS method is not intended to be used with a custom qubit lattice or QuantumComputer object.')
         elif self.method == 'Numpy':
             if self.parametric_way:
                 raise ValueError('NumpyWavefunctionSimulator() backend does not yet support parametric programs.')
+            if (self.qc is not None) or (self.custom_qubits is not None):
+                raise ValueError('NumpyWavefunctionSimulator() backend is not intended to be used with a '
+                                 'QuantumComputer() object or custom lattice. Consider using PyQVM instead')
         elif self.method == 'linalg':           
             if molecule is not None:
                 # sparse initial state vector from the MolecularData() object
@@ -311,7 +310,8 @@ class VQEexperiment:
             raise TypeError('Please supply the circuit parameters as a list or np.ndarray')
 
         if self.tomography:
-            if not self.parametric_way:  # modify hard-coded type ansatz circuit based on packed_amps angles
+            if (not self.parametric_way) and (self.strategy == 'UCCSD'):  # modify hard-coded type ansatz circuit based
+                # on packed_amps angles
                 self.ansatz = uccsd_ansatz_circuit(packed_amps, self.molecule.n_orbitals,
                                                    self.molecule.n_electrons, cq=self.custom_qubits)
                 self.compile_tomo_expts()
@@ -736,10 +736,7 @@ class GroupedPauliSetting:
         """
 
         if self.method == 'WFS':
-            if self.cq is None:
-                qubits = range(self.n_qubits)
-            else:
-                qubits = self.cq[:]
+            qubits = list(range(self.n_qubits))
 
             if len(self.pure_pyquil_program) == 0:  # makes sure there is always a circuit to run
                 self.pure_pyquil_program += I(qubits[0])

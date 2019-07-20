@@ -1,9 +1,9 @@
 import os
 import decorator
 import pytest
+import subprocess
 from openfermion import MolecularData
 from pyquil import Program
-from pyquil.api import local_qvm
 from pyquil.gates import X, RY
 from pyquil.paulis import PauliSum, PauliTerm
 
@@ -38,8 +38,24 @@ def start_qvm(fn):
     the context is terminated also the processes are.
     """
     def wrapper(fn, *args):
-        with local_qvm():
-            return fn(*args)
+
+        # start the QVM and quantum compiler processes
+        qvm = subprocess.Popen(['qvm', '-S'],
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE)
+
+        quilc = subprocess.Popen(['quilc', '-S'],
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
+
+        # execute the wrapper function
+        res = fn(*args)
+
+        # stop the processes
+        qvm.terminate()
+        quilc.terminate()
+        return res
+
     return decorator.decorator(wrapper, fn)
 
 
@@ -156,3 +172,11 @@ def h2_programs(is_parametric):
     with open(fname, "r") as f:
         program_str = f.read()
     return Program(program_str)
+
+
+@pytest.fixture
+def sample_molecule():
+    cwd = os.path.abspath(os.path.dirname(__file__))
+    fname = os.path.join(cwd, "resources", "H2.hdf5")
+    molecule = MolecularData(filename=fname)
+    return molecule

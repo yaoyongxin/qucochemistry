@@ -28,7 +28,7 @@ def qubitop_to_pyquilpauli(qubit_operator):
         raise TypeError("qubit_operator must be a OpenFermion "
                         "QubitOperator object")
 
-    transformed_term = PauliTerm("I", 0, 0.0)
+    transformed_term = PauliSum([PauliTerm("I", 0, 0.0)])
     for qubit_terms, coefficient in qubit_operator.terms.items():
         base_term = PauliTerm('I', 0)
         for tensor_term in qubit_terms:

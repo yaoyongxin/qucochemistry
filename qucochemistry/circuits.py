@@ -166,6 +166,22 @@ def uccsd_ansatz_circuit(packed_amplitudes, n_orbitals, n_electrons, cq=None):
     # convert the fermionic propagator to a Pauli spin basis via JW, then convert to a Pyquil compatible PauliSum
     pyquilpauli = qubitop_to_pyquilpauli(qubit_operator)
 
+    # re-order logical stuff if necessary
+    if cq is not None:
+        pauli_list=[PauliTerm("I", 0, 0.0)]
+        for term in pyquilpauli.terms:
+            new_term = term
+            # if the QPU has a custom lattice labeling, supplied by user through a list cq, reorder the Pauli labels.
+            if cq is not None:
+                new_term = term.coefficient
+                for pauli in term:
+                    new_index = cq[pauli[0]]
+                    op = pauli[1]
+                    new_term = new_term * PauliTerm(op=op, index=new_index)
+
+            pauli_list.append(new_term)
+        pyquilpauli = PauliSum(pauli_list)
+
     # create a pyquil program which performs the ansatz state preparation with angles unpacked from packed_amplitudes
     ansatz_prog = Program()
 
@@ -216,7 +232,7 @@ def uccsd_ansatz_circuit_parametric(n_orbitals, n_electrons, cq=None):
 
             pauli_list.append(new_term)
             # keep track of the indices in a dictionary
-            index_dict[term.operations_as_set()] = indices[i]
+            index_dict[new_term.operations_as_set()] = indices[i]
 
     # add each term as successive exponentials (1 trotter step, and not taking into account commutation relations!)
     term_sets = commuting_sets(simplify_pauli_sum(PauliSum(pauli_list)))

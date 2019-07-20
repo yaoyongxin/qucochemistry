@@ -348,7 +348,7 @@ class VQEexperiment:
                 propagator = normal_ordered(uccsd_singlet_generator(packed_amps, 2 * self.molecule.n_orbitals,
                                                                     self.molecule.n_electrons,
                                                                     anti_hermitian=True))
-                qubit_propagator_matrix = get_sparse_operator(propagator, n_qubits=self.n_qubits))
+                qubit_propagator_matrix = get_sparse_operator(propagator, n_qubits=self.n_qubits)
                 uccsd_state = expm_multiply(qubit_propagator_matrix, self.initial_psi)
                 expected_uccsd_energy = expectation(self.hamiltonian_matrix, uccsd_state).real
                 E += expected_uccsd_energy

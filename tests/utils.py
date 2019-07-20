@@ -4,6 +4,7 @@ import pytest
 import subprocess
 from openfermion import MolecularData
 from pyquil import Program
+from pyquil.api import get_qc
 from pyquil.gates import X, RY
 from pyquil.paulis import PauliSum, PauliTerm
 
@@ -22,6 +23,7 @@ HAMILTONIAN2 = [
 ]
 
 NSHOTS_INT = 10000
+NSHOTS_SMALL = 1000
 NSHOTS_FLOAT = 10000.25
 NQUBITS_H = 2
 NQUBITS_H2 = 4
@@ -72,7 +74,7 @@ def static_ansatz_program():
 
 @pytest.fixture
 def vqe_method():
-    # default value for the tomography flag
+    # default value for the method
     return "WFS"
 
 
@@ -180,3 +182,86 @@ def sample_molecule():
     fname = os.path.join(cwd, "resources", "H2.hdf5")
     molecule = MolecularData(filename=fname)
     return molecule
+
+@pytest.fixture
+def vqe_qc(vqe_strategy, vqe_qc_backend, vqe_parametricflag):
+    """
+    Initialize a VQE experiment with a custom hamiltonian
+    given as constant input, given a QC-type backend (tomography is always set to True then)
+    """
+
+    _vqe = None
+
+    qc = None
+
+    vqe_cq = None
+
+
+
+    if vqe_strategy == "custom_program":
+        if vqe_qc_backend == 'Aspen-qvm':
+            qc = get_qc('Aspen-4-2Q-A-qvm')
+            vqe_cq = [1, 2]
+        elif vqe_qc_backend == 'Aspen-pyqvm':
+            qc = get_qc('Aspen-4-2Q-A-pyqvm')
+            vqe_cq = [1, 2]
+        elif vqe_qc_backend == 'Nq-qvm':
+            qc = get_qc('2q-qvm')
+        elif vqe_qc_backend == 'Nq-pyqvm':
+            qc = get_qc('2q-pyqvm')
+
+        custom_ham = PauliSum([PauliTerm(*x) for x in HAMILTONIAN])
+        _vqe = VQEexperiment(hamiltonian=custom_ham,
+                             qc=qc,
+                             custom_qubits=vqe_cq,
+                             method='QC',
+                             strategy=vqe_strategy,
+                             parametric=True,
+                             tomography=True,
+                             shotN=NSHOTS_SMALL)
+    elif vqe_strategy == "HF":
+        if vqe_qc_backend == 'Aspen-qvm':
+            qc = get_qc('Aspen-4-2Q-A-qvm')
+            vqe_cq = [1, 2]
+        elif vqe_qc_backend == 'Aspen-pyqvm':
+            qc = get_qc('Aspen-4-2Q-A-pyqvm')
+            vqe_cq = [1, 2]
+        elif vqe_qc_backend == 'Nq-qvm':
+            qc = get_qc('2q-qvm')
+        elif vqe_qc_backend == 'Nq-pyqvm':
+            qc = get_qc('2q-pyqvm')
+        cwd = os.path.abspath(os.path.dirname(__file__))
+        fname = os.path.join(cwd, "resources", "H.hdf5")
+        molecule = MolecularData(filename=fname)
+        _vqe = VQEexperiment(molecule=molecule,
+                             qc=qc,
+                             custom_qubits=vqe_cq,
+                             method='QC',
+                             strategy=vqe_strategy,
+                             parametric=vqe_parametricflag,
+                             tomography=True,
+                             shotN=NSHOTS_SMALL)
+    elif vqe_strategy == "UCCSD":
+        if vqe_qc_backend == 'Aspen-qvm':
+            qc = get_qc('Aspen-4-4Q-A-qvm')
+            vqe_cq = [7, 0, 1, 2]
+        elif vqe_qc_backend == 'Aspen-pyqvm':
+            qc = get_qc('Aspen-4-4Q-A-pyqvm')
+            vqe_cq = [7, 0, 1, 2]
+        elif vqe_qc_backend == 'Nq-qvm':
+            qc = get_qc('4q-qvm')
+        elif vqe_qc_backend == 'Nq-pyqvm':
+            qc = get_qc('4q-pyqvm')
+
+        cwd = os.path.abspath(os.path.dirname(__file__))
+        fname = os.path.join(cwd, "resources", "H2.hdf5")
+        molecule = MolecularData(filename=fname)
+        _vqe = VQEexperiment(molecule=molecule,
+                             qc=qc,
+                             custom_qubits=vqe_cq,
+                             method='QC',
+                             strategy=vqe_strategy,
+                             parametric=vqe_parametricflag,
+                             tomography=True,
+                             shotN=NSHOTS_SMALL)
+    return _vqe

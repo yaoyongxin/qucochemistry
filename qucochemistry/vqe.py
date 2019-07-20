@@ -30,7 +30,7 @@ class VQEexperiment:
 
     def __init__(self, qc: Union[QuantumComputer, None] = None, hamiltonian: Union[PauliSum, List[PauliTerm], None] =
                  None, molecule: MolecularData = None, method: str = 'Numpy', strategy: str = 'UCCSD',
-                 optimizer: str = 'BFGS', maxiter: int = 0, shotN: int = 10000, active_reset: bool = True,
+                 optimizer: str = 'BFGS', maxiter: int = 100000000, shotN: int = 10000, active_reset: bool = True,
                  tomography: bool = False, verbose: bool = False, parametric: bool = False, custom_qubits=None):
         """
 
@@ -407,15 +407,23 @@ class VQEexperiment:
             starting_angles = np.array(theta)
         else:
             raise TypeError('Please supply the circuit parameters as a list or np.ndarray')
-
+        
+        if not isinstance(maxiter, int):
+            raise TypeError('Max number of iterations, maxiter, should be a positive integer.')
+        elif maxiter < 0:
+            raise ValueError('Max number of iterations, maxiter, should be positive.')
+        
         # store historical values of the optimizer
         self.history = []
 
         if maxiter > 0:
+            max_iter = maxiter
             self.maxiter = maxiter
+        else:
+            max_iter = self.maxiter
 
         # define a base_options which can be extended with another dictionary supplied in the start_vqe() call.
-        base_options = {'disp': self.verbose, 'maxiter': self.maxiter}
+        base_options = {'disp': self.verbose, 'maxiter': max_iter}
 
         self.it_num = 0
         # run the classical optimizer with the quantum circuit evaluation as an objective function.

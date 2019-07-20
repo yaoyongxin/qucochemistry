@@ -13,11 +13,11 @@ You can install the library in two different ways.
 
 **From PyPi or conda**
 
-Using pip install the latest version from PyPi in user mode:
+Using pip install the latest version from PyPi within a virtual environment:
 
 .. code-block:: bash
 
-    python -m pip install --user qucochemistry
+    python -m pip install qucochemistry
 
 Alternatively, the library can be installed within a conda environment:
 
@@ -38,7 +38,7 @@ Alternatively, install within a Conda environment using the provided environment
 
 .. code-block:: bash
 
-    conda env -n <env_name> -f deploy/environment.yml
+    conda env create -n <env_name> -f deploy/environment.yml
     conda activate <env_name>
     python -m pip install -e .
 
@@ -47,7 +47,8 @@ Usage
 ------------
 
 In order to use this library within your program, Rigetti's quantum virtual machine and quantum compilers must be running in the background. 
-If you run on Linux or OSX and the Rigetti's `Forest SDK <https://www.rigetti.com/forest>`__ is correctly installed, you can start them in the background with the following commands:
+If you run on Linux or OSX and the Rigetti's `Forest SDK <https://www.rigetti.com/forest>`__ is correctly installed, you can start them in the 
+background with the following commands:
 
 .. code-block:: bash
 
@@ -63,7 +64,29 @@ To be able run end-to-end programs, you should install PySCF and OpenFermion-PyS
 
   python -m pip install --user openfermionpyscf pyscf
 
-If you created the Conda environment as described in the previous section, you should be able to install these dependencies within the environment with the same command (without the :code:`--user` flag).
+If you created the Conda environment as described in the previous section, you should be able to install these dependencies within 
+the environment with the same command (without the :code:`--user` flag).
+
+Development
+-----------------
+
+The unit tests are build using the `pytest` framework. In order to run them, install the qucochemistry package using the previous instruction
+and then execute in the root project directory:
+
+.. code-block:: bash
+
+  pytest -v --cov=qucochemistry
+
+An automatic code coverage report will be generated after running the above command. In order to visualize 
+the details of the code coverage for each module, an HTML report can be generated and rendered with your favorite
+browser
+
+
+.. code-block:: bash
+
+  pytest -v --cov=qucochemistry --cov-report html
+  firefox htmlcov/index.html
+
 
 How to contribute
 -----------------

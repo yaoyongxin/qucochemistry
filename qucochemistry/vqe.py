@@ -13,7 +13,6 @@ from openfermion.utils import uccsd_singlet_generator, normal_ordered, uccsd_sin
     expectation, jw_hartree_fock_state
 from openfermion.transforms import jordan_wigner, get_sparse_operator, get_fermion_operator
 
-from scipy.optimize import minimize
 from scipy.sparse.linalg import expm_multiply
 
 import numpy as np
@@ -24,6 +23,7 @@ import time
 from qucochemistry.utils import qubitop_to_pyquilpauli, pyquilpauli_to_qubitop
 from qucochemistry.circuits import augment_program_with_memory_values, pauli_meas, ref_state_preparation_circuit, \
     uccsd_ansatz_circuit, uccsd_ansatz_circuit_parametric
+from qucochemistry.utils import minimizer
 
 
 class VQEexperiment:
@@ -381,10 +381,12 @@ class VQEexperiment:
 
     def start_vqe(self, theta=None, maxiter: int = 0, options: dict = {}):
         """
-        This method starts the VQE algorithm. User can supply an initial circuit setting, otherwise the stored initial settings are used. the maxiter refers to the scipy optimizer number of iterations. (which may well be much less than the number of function calls)
+        This method starts the VQE algorithm. User can supply an initial circuit setting, otherwise the stored
+        initial settings are used. the maxiter refers to the scipy optimizer number of iterations
+        (which may well be much less than the number of function calls)
 
         :param [list(),numpy.ndarray] theta: list of initial angles for the circuit to start the optimizer in.
-        :param int maxiter: maximum number of iterations
+        :param int maxiter: maximum number of iterations.
         :param Dict options: options for the scipy.minimize classical optimizer
 
         :return: scipy.optimize.minimize result object containing convergence details and final energies. See scipy docs
@@ -399,7 +401,7 @@ class VQEexperiment:
         # memory register Theta in the parametric program
         if theta is None:
             if self.verbose:
-                print('Setting starting circuit parameters to intial amps: ', self.initial_packed_amps)
+                print('Setting starting circuit parameters to initial amps: ', self.initial_packed_amps)
             starting_angles = np.array(self.initial_packed_amps)
         elif isinstance(theta, np.ndarray):
             starting_angles = theta
@@ -427,8 +429,10 @@ class VQEexperiment:
 
         self.it_num = 0
         # run the classical optimizer with the quantum circuit evaluation as an objective function.
-        self.res = minimize(self.objective_function, starting_angles, method=self.optimizer,
-                            options={**base_options, **options})
+        # self.res = minimize(self.objective_function, starting_angles, method=self.optimizer,
+        #                     options={**base_options, **options})
+        self.res = minimizer(self.objective_function, starting_angles, method=self.optimizer,
+                             options={**base_options, **options})
 
         if self.verbose:
             print('VQE optimization took ' + '{0:.3f}'.format(time.time()-t0) + ' seconds to evaluate')
@@ -619,9 +623,14 @@ class GroupedPauliSetting:
                  shotN: int, parametric_way: bool, n_qubits: int, active_reset: bool = True, cq=None, method='QC',
                  verbose: bool = False):
         """
-        A tomography experiment class for use in VQE. In a real experiment, one only has access to measurements in the Z-basis, giving a result 0 or 1 for each qubit. The Hamiltonian may have terms like sigma_x or sigma_y, for which a basis rotation is required. As quantum mechanics prohibits measurements in multiple bases at once, the Hamiltonian needs to be grouped into commuting Pauli terms and for each set of terms the appropriate basis rotations is applied to each qubits.
+        A tomography experiment class for use in VQE. In a real experiment, one only has access to measurements in
+        the Z-basis, giving a result 0 or 1 for each qubit. The Hamiltonian may have terms like sigma_x or sigma_y,
+        for which a basis rotation is required. As quantum mechanics prohibits measurements in multiple bases at once,
+        the Hamiltonian needs to be grouped into commuting Pauli terms and for each set of terms the appropriate basis
+        rotations is applied to each qubits.
 
-        A parity_matrix is constructed to keep track of what consequence a qubit measurement of 0 or 1 has as a contribution to the Pauli estimation.
+        A parity_matrix is constructed to keep track of what consequence a qubit measurement of 0 or 1 has as a
+        contribution to the Pauli estimation.
 
         The experiments are constructed as objects with class methods to run and adjust them.
 
@@ -773,7 +782,7 @@ class GroupedPauliSetting:
             else:  # when no angles are supplied it is assumed that the pyquil binary already has them: no memory_map
                 bitstrings = qc.run(self.pyquil_executable)
 
-        #t = time.time() # dev only
+        # t = time.time() # dev only
         # start data processing
         # this matrix computes the pauli string parity, and stores that for each bitstring
         is_odd = np.mod(bitstrings.dot(self.parity_matrix), 2)

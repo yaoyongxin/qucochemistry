@@ -1,7 +1,8 @@
 from pyquil.paulis import PauliSum, PauliTerm
 from openfermion.ops import FermionOperator, down_index, up_index, QubitOperator
-from scipy.misc import comb
+from scipy.special import comb
 import numpy as np
+from scipy.optimize import minimize
 import itertools
 
 """
@@ -12,6 +13,7 @@ The utility function uccsd_singlet_generator_with_indices() is used to keep trac
  UCCSD preparation circuit
 
 """
+
 
 def qubitop_to_pyquilpauli(qubit_operator):
     """
@@ -65,7 +67,11 @@ def pyquilpauli_to_qubitop(pyquil_pauli):
 
 
 def uccsd_singlet_generator_with_indices(n_qubits, n_electrons):
-    """Create a singlet UCCSD generator for a system with n_electrons, but return a `list of Fermion operators`, for each term in packed_amplitudes, name it a list called generator, instead of a `sum` called generator. It also returns a list of indices matching each term. This function generates a FermionOperator for a UCCSD generator designed to act on a single reference state consisting of n_qubits spin orbitals and n_electrons electrons, that is a spin singlet operator, meaning it conserves spin. 
+    """Create a singlet UCCSD generator for a system with n_electrons, but return a `list of Fermion operators`, for
+    each term in packed_amplitudes, name it a list called generator, instead of a `sum` called generator. It also
+    returns a list of indices matching each term. This function generates a FermionOperator for a UCCSD generator
+    designed to act on a single reference state consisting of n_qubits spin orbitals and n_electrons electrons,
+    that is a spin singlet operator, meaning it conserves spin.
 
     :param n_qubits: Number of spin-orbitals used to represent the system, which also corresponds to number of qubits in a non-compact map.
     :type n_qubits: int
@@ -193,3 +199,46 @@ def uccsd_singlet_generator_with_indices(n_qubits, n_electrons):
                     -coeff)]
 
     return generator, generator_indices
+
+
+# class AnnotatedMinimizer:
+#
+#     niter = 0
+#
+#     @staticmethod
+#     def callback(x):
+#         print(f"{niter}: {x}")
+#         niter += 1
+#
+#     def __call__(self, *args, **kwargs):
+#         try:
+#             res = minimize(*args, **kwargs, callback=minimizer_iter_callback)
+#         except Exception
+#             print("Error minimizing the variational ansatz!")
+#             raise
+#         self.niter = 0
+#         return res
+
+
+# TODO: replace the following code with the class above
+
+niter = 1
+
+
+def minimizer_iter_callback(x):
+    global niter
+    print(f"{niter}: {x}")
+    niter += 1
+
+
+def minimizer(fn, starting_angles, method, options={}):
+    try:
+        res = minimize(fn, starting_angles, method=method, options=options,
+                       callback=minimizer_iter_callback)
+    except Exception:
+        # TODO: replace this print with a more robust logging system
+        print("Error minimizing the variational ansatz!")
+        raise
+    global niter
+    niter = 0
+    return res

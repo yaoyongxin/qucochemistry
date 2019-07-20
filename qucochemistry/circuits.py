@@ -205,6 +205,7 @@ def uccsd_ansatz_circuit_parametric(n_orbitals, n_electrons, cq=None):
     for i, fermionic_term in enumerate(fermionic_list):
         pauli_sum = qubitop_to_pyquilpauli(jordan_wigner(normal_ordered(fermionic_term)))
         for term in pauli_sum:
+            new_term = term
             # if the QPU has a custom lattice labeling, supplied by user through a list cq, reorder the Pauli labels.
             if cq is not None:
                 new_term = term.coefficient
@@ -212,14 +213,10 @@ def uccsd_ansatz_circuit_parametric(n_orbitals, n_electrons, cq=None):
                     new_index = cq[pauli[0]]
                     op = pauli[1]
                     new_term = new_term * PauliTerm(op=op, index=new_index)
-                pauli_list.append(new_term)
 
-                # keep track of the indices in a dictionary
-                index_dict[new_term.operations_as_set()] = indices[i]
-            else:
-                pauli_list.append(term)
-                # keep track of the indices in a dictionary
-                index_dict[term.operations_as_set()] = indices[i]
+            pauli_list.append(new_term)
+            # keep track of the indices in a dictionary
+            index_dict[term.operations_as_set()] = indices[i]
 
     # add each term as successive exponentials (1 trotter step, and not taking into account commutation relations!)
     term_sets = commuting_sets(simplify_pauli_sum(PauliSum(pauli_list)))

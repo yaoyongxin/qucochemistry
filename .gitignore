@@ -6,3 +6,5 @@ __pycache__
 _build
 _static
 _template
+.coverage
+htmlcov

@@ -15,9 +15,6 @@ long_description += stream.read()
 
 
 # Read in requirements.txt
-#requirements = open('requirements.txt').readlines()
-#requirements = [r.strip() for r in requirements]
-
 
 setup(
     name="qucochemistry",
@@ -33,9 +30,11 @@ setup(
         'numpy==1.15.4',
         'scipy==1.2.0',
         'openfermion==0.9.0',
-        'pyquil==2.7.2'
+        'pyquil==2.7.2',
+        'pytest',
+        'pytest-cov'
     ],
-    packages=find_packages(),
+    packages=find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
     license="Apache 2",
     classifiers=[
         "Programming Language :: Python :: 3",

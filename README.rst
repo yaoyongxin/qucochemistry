@@ -27,12 +27,12 @@ Alternatively, the library can be installed within a conda environment:
 
 **From source**
 
-Using pip, install the library in user mode:
+Using pip, install the library within a virtual environment:
 
 .. code-block:: bash
 
-    python -m pip install --user -r deploy/requirements.txt
-    python -m pip install --user -e .
+    python -m pip install -r deploy/requirements.txt
+    python -m pip install -e .
 
 Alternatively, install within a Conda environment using the provided environment:
 
@@ -62,16 +62,25 @@ To be able run end-to-end programs, you should install PySCF and OpenFermion-PyS
 
 .. code-block:: bash
 
-  python -m pip install --user openfermionpyscf pyscf
+  python -m pip install openfermionpyscf pyscf
 
 If you created the Conda environment as described in the previous section, you should be able to install these dependencies within 
-the environment with the same command (without the :code:`--user` flag).
+the environment with the same command.
+
 
 Development
 -----------------
 
-The unit tests are build using the `pytest` framework. In order to run them, install the qucochemistry package using the previous instruction
-and then execute in the root project directory:
+The unit tests are built using the `pytest` framework. In order to run them, install the qucochemistry package using the previous instruction
+and add the following dependencies:
+
+.. code-block:: bash
+  # for Conda environment
+  conda install pytest pytest-cov 
+  # for standard virtual environment
+  python -m pip install pytest pytest-cov 
+
+The tests can be executed in the root project directory as follows:
 
 .. code-block:: bash
 

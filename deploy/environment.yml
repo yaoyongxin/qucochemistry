@@ -1,4 +1,4 @@
-name: qucochemistry_prod
+name: qucochemistry
 channels:
   - defaults
   - conda-forge
@@ -85,4 +85,3 @@ dependencies:
     - wcwidth==0.1.7
     - webencodings==0.5.1
     - widgetsnbextension==3.5.0
-prefix: /home/mdagrada/Software/local/miniconda3/envs/qucochemistry_prod

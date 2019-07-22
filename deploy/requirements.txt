@@ -56,7 +56,6 @@ python-rapidjson==0.7.2
 pytz==2019.1
 pyzmq==18.0.2
 qtconsole==4.5.1
--e git+git@github.com:qu-co/qucochemistry.git@afaeba2afba2187454cd85b4d00c16b5be6d6495#egg=qucochemistry
 requests==2.22.0
 rpcq==2.7.1
 ruamel.yaml==0.15.100

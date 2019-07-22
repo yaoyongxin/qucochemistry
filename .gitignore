@@ -8,3 +8,5 @@ _static
 _template
 .coverage
 htmlcov
+meta.yaml
+tmp*

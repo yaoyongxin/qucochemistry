@@ -40,7 +40,7 @@ NQUBITS_H2 = 4
 # utilities
 
 
-# FIXME: remove this code when the local_qvm_quilc has been properly tested
+# FIXME: remove this code when local_qvm_quilc will be properly tested
 # def start_qvm(fn):
 #     import subprocess
 #     import decorator

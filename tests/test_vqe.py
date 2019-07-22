@@ -1,15 +1,15 @@
+import os
+import pytest
 import numpy as np
+from pyquil import Program
+from pyquil.gates import X
+from pyquil.paulis import PauliSum, PauliTerm
 
-from . utils import *
-
-# constants used by the tests
-
-# tests
+from . conftest import ground_states, HAMILTONIAN2, NQUBITS_H, NQUBITS_H2
 
 
-@start_qvm
 @pytest.mark.parametrize('vqe_tomography', [True, False])
-def test_static_custom_program_strategy(vqe_parametric):
+def test_static_custom_program_strategy(vqe_parametric, local_qvm_quilc):
     gs = vqe_parametric.get_exact_gs()
     ec = vqe_parametric.objective_function()
     assert np.isclose(gs, ground_states[vqe_parametric.strategy][0], atol=1e-3)
@@ -20,21 +20,19 @@ def test_static_custom_program_strategy(vqe_parametric):
     assert gs_with_ham != gs
 
 
-@start_qvm
 @pytest.mark.parametrize('vqe_tomography', [True, False])
 @pytest.mark.parametrize('vqe_strategy', ['HF', 'UCCSD'])
-def test_strategy_parametric(vqe_parametric):
+def test_strategy_parametric(vqe_parametric, local_qvm_quilc):
     ec = vqe_parametric.objective_function()
     gs = vqe_parametric.get_exact_gs()
     assert np.isclose(gs, ground_states[vqe_parametric.strategy][0], atol=1e-2)
     assert np.isclose(ec, ground_states[vqe_parametric.strategy][1], atol=1e-2)
 
 
-@start_qvm
 @pytest.mark.parametrize('vqe_tomography', [True, False])
 @pytest.mark.parametrize('vqe_strategy', ['UCCSD'])
 @pytest.mark.parametrize('vqe_method', ["WFS", "Numpy"])
-def test_strategy_fixed(vqe_fixed):
+def test_strategy_fixed(vqe_fixed, local_qvm_quilc):
     ec = vqe_fixed.objective_function()
     gs = vqe_fixed.get_exact_gs()
     assert np.isclose(gs, ground_states[vqe_fixed.strategy][0], atol=1e-2)

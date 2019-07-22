@@ -1,6 +1,7 @@
+import pytest
 import numpy as np
 
-from . utils import *
+from . conftest import ground_states
 
 
 @pytest.mark.parametrize('vqe_strategy', ['UCCSD', 'HF'])

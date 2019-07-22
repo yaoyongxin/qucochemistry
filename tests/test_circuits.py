@@ -4,7 +4,6 @@ from pyquil import Program
 from scipy.special import comb
 
 from qucochemistry.circuits import uccsd_ansatz_circuit_parametric, uccsd_ansatz_circuit
-from . utils import h2_programs, is_parametric, sample_molecule
 
 
 @pytest.mark.parametrize('is_parametric', [True])

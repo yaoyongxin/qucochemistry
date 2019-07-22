@@ -1,19 +1,15 @@
 import os
-import decorator
 import shutil
 import pytest
-import subprocess
 from openfermion import MolecularData
 from pyquil import Program
 from pyquil.api import get_qc, local_qvm
-from pyquil.gates import RY
 from pyquil.paulis import PauliSum, PauliTerm
 
 from qucochemistry.vqe import VQEexperiment
 
 
 # constants used throughout the tests
-
 
 HAMILTONIAN = [
     ('Z', 0, -3.2),
@@ -26,6 +22,7 @@ HAMILTONIAN2 = [
     ('Z', 1, 2.3),
     ('X', 0, 1.5)
 ]
+
 
 ground_states = {
     "HF": (-0.4665818495572751, -0.4665818495572751),
@@ -43,51 +40,49 @@ NQUBITS_H2 = 4
 # utilities
 
 
-def start_qvm(fn):
-    """
-    This decorator ensures that in the the context where the decorated function is executed
-    the following processes are running:
-    >> qvm -S
-    >> quilc -S
-
-    They needed to compile and execute a program on the quantum virtual machine. When
-    the context is terminated also the processes are.
-    """
-    def wrapper(fn, *args):
-
-        # start the QVM and quantum compiler processes
-        qvm = subprocess.Popen(['qvm', '-S'],
-                               stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE)
-
-        quilc = subprocess.Popen(['quilc', '-S'],
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE)
-
-        # execute the wrapper function
-        res = fn(*args)
-
-        # stop the processes
-        qvm.terminate()
-        quilc.terminate()
-        return res
-
-    return decorator.decorator(wrapper, fn)
-
-
-def parametric_ansatz_program():
-    prog = Program()
-    theta = prog.declare('theta', memory_type='REAL', memory_size=1)
-    prog.inst(RY(theta[0], 0))
-    return prog
+# FIXME: remove this code when the local_qvm_quilc has been properly tested
+# def start_qvm(fn):
+#     import subprocess
+#     import decorator
+#     """
+#     This decorator ensures that in the the context where the decorated function is executed
+#     the following processes are running:
+#     >> qvm -S
+#     >> quilc -S
+#
+#     They needed to compile and execute a program on the quantum virtual machine. When
+#     the context is terminated also the processes are.
+#     """
+#     def wrapper(fn, *args):
+#
+#         # start the QVM and quantum compiler processes
+#         qvm = subprocess.Popen(['qvm', '-S'],
+#                                stdout=subprocess.PIPE,
+#                                stderr=subprocess.PIPE)
+#
+#         quilc = subprocess.Popen(['quilc', '-S'],
+#                                  stdout=subprocess.PIPE,
+#                                  stderr=subprocess.PIPE)
+#
+#         # execute the wrapper function
+#         res = fn(*args)
+#
+#         # stop the processes
+#         qvm.terminate()
+#         quilc.terminate()
+#         return res
+#
+#     return decorator.decorator(wrapper, fn)
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(scope="module")
 def local_qvm_quilc():
-    """Execute test with local qvm and quilc running"""
+    """
+    Execute test with local qvm and quilc running
+    """
     if shutil.which('qvm') is None or shutil.which('quilc') is None:
-        return pytest.skip("This test requires 'qvm' and 'quilc' "
-                           "executables to be installed locally.")
+        pytest.exit("The unit tests requires 'qvm' and 'quilc' "
+                    "executables to be installed locally.")
 
     with local_qvm() as context:
         yield context
@@ -284,9 +279,6 @@ def vqe_qc(vqe_strategy, vqe_qc_backend, vqe_parametricflag, sample_molecule):
         elif vqe_qc_backend == 'Nq-pyqvm':
             qc = get_qc('4q-pyqvm')
 
-        # cwd = os.path.abspath(os.path.dirname(__file__))
-        # fname = os.path.join(cwd, "resources", "H2.hdf5")
-        # molecule = MolecularData(filename=fname)
         _vqe = VQEexperiment(molecule=sample_molecule,
                              qc=qc,
                              custom_qubits=vqe_cq,

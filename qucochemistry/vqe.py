@@ -455,7 +455,7 @@ class VQEexperiment:
             else:
                 raise TypeError('please give a PauliSum() object as the Hamiltonian.')
 
-        if self.get_qubit_req() > 5:  # sparse matrix eigenvalue decomposition is less accurate, but is necessary for
+        if h.shape[0] > 1024:  # sparse matrix eigenvalue decomposition is less accurate, but is necessary for
             # larger matrices
             [w, _] = sp.sparse.linalg.eigsh(h, k=1)
         else:

@@ -4,28 +4,16 @@ from . utils import *
 
 # constants used by the tests
 
-CUSTOM_APPROX_GS = -5.792
-CUSTOM_APPROX_EC = -0.9
-HF_GS = -0.4665818495572751
-UCCSD_GS = -1.1372701746609015
-UCCSD_EC = -1.1372701746609015
-
-ground_states = {
-    "HF": (-0.4665818495572751, -0.4665818495572751),
-    "UCCSD": (-1.1372701746609015, -1.1397672933805079),
-    "custom_program": (-5.792, -0.9)
-}
-
-
 # tests
+
 
 @start_qvm
 @pytest.mark.parametrize('vqe_tomography', [True, False])
 def test_static_custom_program_strategy(vqe_parametric):
     gs = vqe_parametric.get_exact_gs()
     ec = vqe_parametric.objective_function()
-    assert np.isclose(gs, CUSTOM_APPROX_GS, atol=1e-3)
-    assert np.isclose(ec, CUSTOM_APPROX_EC, atol=1e-1)
+    assert np.isclose(gs, ground_states[vqe_parametric.strategy][0], atol=1e-3)
+    assert np.isclose(ec, ground_states[vqe_parametric.strategy][1], atol=1e-1)
 
     custom_ham = PauliSum([PauliTerm(*x) for x in HAMILTONIAN2])
     gs_with_ham = vqe_parametric.get_exact_gs(hamiltonian=custom_ham)

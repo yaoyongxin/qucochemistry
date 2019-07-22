@@ -1,14 +1,19 @@
 import os
 import decorator
+import shutil
 import pytest
 import subprocess
 from openfermion import MolecularData
 from pyquil import Program
-from pyquil.api import get_qc
-from pyquil.gates import X, RY
+from pyquil.api import get_qc, local_qvm
+from pyquil.gates import RY
 from pyquil.paulis import PauliSum, PauliTerm
 
 from qucochemistry.vqe import VQEexperiment
+
+
+# constants used throughout the tests
+
 
 HAMILTONIAN = [
     ('Z', 0, -3.2),
@@ -22,11 +27,20 @@ HAMILTONIAN2 = [
     ('X', 0, 1.5)
 ]
 
+ground_states = {
+    "HF": (-0.4665818495572751, -0.4665818495572751),
+    "UCCSD": (-1.1372701746609015, -1.1397672933805079),
+    "custom_program": (-5.792, -0.9)
+}
+
 NSHOTS_INT = 10000
 NSHOTS_SMALL = 1000
 NSHOTS_FLOAT = 10000.25
 NQUBITS_H = 2
 NQUBITS_H2 = 4
+
+
+# utilities
 
 
 def start_qvm(fn):
@@ -68,26 +82,70 @@ def parametric_ansatz_program():
     return prog
 
 
-def static_ansatz_program():
-    return Program(X(1))
+@pytest.fixture(scope="session", autouse=True)
+def local_qvm_quilc():
+    """Execute test with local qvm and quilc running"""
+    if shutil.which('qvm') is None or shutil.which('quilc') is None:
+        return pytest.skip("This test requires 'qvm' and 'quilc' "
+                           "executables to be installed locally.")
 
+    with local_qvm() as context:
+        yield context
+
+
+# default fixture values
 
 @pytest.fixture
 def vqe_method():
-    # default value for the method
     return "WFS"
 
 
 @pytest.fixture
 def vqe_tomography():
-    # default value for the tomography flag
     return False
 
 
 @pytest.fixture
 def vqe_strategy():
-    # default value for the strategy
     return "custom_program"
+
+
+@pytest.fixture
+def vqe_parametricflag():
+    return True
+
+
+@pytest.fixture
+def is_parametric():
+    return False
+
+
+@pytest.fixture
+def vqe_qc_backend():
+    return "Nq-pyqvm"
+
+# fixtures for generating test molecule/programs input
+
+
+@pytest.fixture
+def h2_programs(is_parametric):
+    cwd = os.path.abspath(os.path.dirname(__file__))
+    name = "H2.gates_parametric" if is_parametric else "H2.gates"
+    fname = os.path.join(cwd, "resources", name)
+    with open(fname, "r") as f:
+        program_str = f.read()
+    return Program(program_str)
+
+
+@pytest.fixture
+def sample_molecule():
+    cwd = os.path.abspath(os.path.dirname(__file__))
+    fname = os.path.join(cwd, "resources", "H2.hdf5")
+    molecule = MolecularData(filename=fname)
+    return molecule
+
+
+# fixtures for generating different flavors of VQE experiments
 
 
 @pytest.fixture
@@ -161,42 +219,15 @@ def vqe_fixed(vqe_strategy, vqe_tomography, vqe_method):
 
 
 @pytest.fixture
-def is_parametric():
-    # default value for the strategy
-    return False
-
-
-@pytest.fixture
-def h2_programs(is_parametric):
-    cwd = os.path.abspath(os.path.dirname(__file__))
-    name = "H2.gates_parametric" if is_parametric else "H2.gates"
-    fname = os.path.join(cwd, "resources", name)
-    with open(fname, "r") as f:
-        program_str = f.read()
-    return Program(program_str)
-
-
-@pytest.fixture
-def sample_molecule():
-    cwd = os.path.abspath(os.path.dirname(__file__))
-    fname = os.path.join(cwd, "resources", "H2.hdf5")
-    molecule = MolecularData(filename=fname)
-    return molecule
-
-@pytest.fixture
-def vqe_qc(vqe_strategy, vqe_qc_backend, vqe_parametricflag):
+def vqe_qc(vqe_strategy, vqe_qc_backend, vqe_parametricflag, sample_molecule):
     """
     Initialize a VQE experiment with a custom hamiltonian
     given as constant input, given a QC-type backend (tomography is always set to True then)
     """
 
     _vqe = None
-
     qc = None
-
     vqe_cq = None
-
-
 
     if vqe_strategy == "custom_program":
         if vqe_qc_backend == 'Aspen-qvm':
@@ -253,10 +284,10 @@ def vqe_qc(vqe_strategy, vqe_qc_backend, vqe_parametricflag):
         elif vqe_qc_backend == 'Nq-pyqvm':
             qc = get_qc('4q-pyqvm')
 
-        cwd = os.path.abspath(os.path.dirname(__file__))
-        fname = os.path.join(cwd, "resources", "H2.hdf5")
-        molecule = MolecularData(filename=fname)
-        _vqe = VQEexperiment(molecule=molecule,
+        # cwd = os.path.abspath(os.path.dirname(__file__))
+        # fname = os.path.join(cwd, "resources", "H2.hdf5")
+        # molecule = MolecularData(filename=fname)
+        _vqe = VQEexperiment(molecule=sample_molecule,
                              qc=qc,
                              custom_qubits=vqe_cq,
                              method='QC',

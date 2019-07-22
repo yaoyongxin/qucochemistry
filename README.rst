@@ -75,6 +75,7 @@ The unit tests are built using the `pytest` framework. In order to run them, ins
 and add the following dependencies:
 
 .. code-block:: bash
+
   # for Conda environment
   conda install pytest pytest-cov 
   # for standard virtual environment

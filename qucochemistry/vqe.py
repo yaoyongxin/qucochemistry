@@ -316,7 +316,7 @@ class VQEexperiment:
                                                             method=self.method, verbose=self.verbose,
                                                             cq=self.custom_qubits))
 
-    def objective_function(self, amps=None):
+    def objective_function(self, amps=None, return_variance=False):
         """
         This function returns the Hamiltonian expectation value over the final circuit output state. If argument
         packed_amps is given, the circuit will run with those parameters. Otherwise, the initial angles will be used.
@@ -328,6 +328,7 @@ class VQEexperiment:
         """
 
         E = 0
+        variance = 0
         t = time.time()
 
         if amps is None:
@@ -346,7 +347,9 @@ class VQEexperiment:
                                                    self.molecule.n_electrons, cq=self.custom_qubits)
                 self.compile_tomo_expts()
             for experiment in self.experiment_list:
-                E += experiment.run_experiment(self.qc, packed_amps)  # Run tomography experiments
+                ex, var = experiment.run_experiment(self.qc, packed_amps)  # Run tomography experiments
+                E += ex
+                variance += var
             E += self.offset  # add the offset energy to avoid doing superfluous tomography over the identity operator.
         elif self.method == 'WFS':
             # In the direct WFS method without tomography, direct access to wavefunction is allowed and expectation
@@ -407,7 +410,10 @@ class VQEexperiment:
 
         self.history.append(E)
 
-        return E
+        if return_variance:
+            return E, variance
+        else:
+            return E
 
     def start_vqe(self, theta=None, maxiter: int = 0, options: dict = {}):
         """
@@ -725,7 +731,7 @@ class GroupedPauliSetting:
         already_done = []
         for pauli in list_gsuit_paulis:
             # let's store the pauli term coefficients for later use
-            self.coefficients.append(pauli.coefficient)
+            self.coefficients.append(pauli.coefficient.real)
 
             # also, we perform the necessary rotations going from X or Y to Z basis
             for (i, st) in pauli.operations_as_set():
@@ -825,12 +831,16 @@ class GroupedPauliSetting:
 
         # if the parity is odd, the bitstring gives a -1 eigenvalue, and +1 vice versa.
         # sum over all bitstrings, average over shotN shots, and weigh each pauli string by its coefficient
-        E = (1 - 2 * np.sum(is_odd, axis=0) / self.shotN).dot(np.array(self.coefficients)).real
+        #E = (1 - 2 * np.sum(is_odd, axis=0) / self.shotN).dot(np.array(self.coefficients)).real
+        values = (1 - 2 * is_odd).dot(np.array(self.coefficients))
+        E = np.mean(values)
+        var = np.var(values)/self.shotN
+
         # if self.verbose:  # dev only
         #    print('evaluating bitstrings took ' + str(time.time() - t) + ' seconds')
         # end data processing
 
-        return E
+        return E, var
 
     @staticmethod
     def construct_parity_matrix(pauli_list, n_qubits):

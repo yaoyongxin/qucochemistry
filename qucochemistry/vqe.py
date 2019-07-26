@@ -176,6 +176,9 @@ class VQEexperiment:
         # operator, which always yields unity times the coefficient due to wavefunction normalization.
         self.offset = 0
 
+        # initialize list of lists of commuting Pauli strings meant for efficient tomography
+        self.grouped_list = []
+
         # set empty circuit unitary. This is used for the direct linear algebraic methods.
         self.circuit_unitary = None
 
@@ -216,6 +219,7 @@ class VQEexperiment:
         if self.tomography:
             if self.method == 'linalg':
                 raise NotImplementedError('Tomography is not yet implemented for the linalg method.')
+            self.group_commuting_paulis()
             self.compile_tomo_expts()
         else:
             # avoid having to re-calculate the PauliSum object each time, store it.
@@ -248,18 +252,31 @@ class VQEexperiment:
             raise ValueError('unknown method: please choose from method = {linalg, WFS, tomography} for direct linear '
                              'algebra, pyquil WavefunctionSimulator, or doing Tomography, respectively')
 
-    def compile_tomo_expts(self):
+    def group_commuting_paulis(self, hamiltonian=None):
         """
-        This method compiles the tomography experiment circuits and prepares them for simulation. Every time the
-        circuits are adjusted, re-compiling the tomography experiments is required to affect the outcome.
+        This method groups sets of commuting Pauli operators in the pauli_list, or for an optionally given Hamiltonian.
+
+        :param PauliSum hamiltonian: (optional) Hamiltonian of Pauli strings which should be sorted into a list of lists with commuting Pauli strings
+
+        :return: grouped_list
+        :rtype: list()
         """
-        self.offset = 0
+
+        if hamiltonian is None:
+            pauli_list = self.pauli_list
+        else:
+            if isinstance(hamiltonian, PauliSum):
+                pauli_list = hamiltonian.terms
+            else:
+                raise TypeError('Please enter Hamiltonian argument as PauliSum object.')
+
+        offset = 0
         # use Forest's sorting algo from the Tomography suite to group Pauli measurements together
         experiments = []
-        for term in self.pauli_list:
+        for term in pauli_list:
             # if the Pauli term is an identity operator, add the term's coefficient directly to the VQE class' offset
             if len(term.operations_as_set()) == 0:
-                self.offset += term.coefficient.real
+                offset += term.coefficient.real
             else:
                 experiments.append(ExperimentSetting(TensorProductState(), term))
 
@@ -277,8 +294,21 @@ class VQEexperiment:
         if self.verbose:
             print('Number of tomography experiments: ', len(grouped_list))
 
+        if hamiltonian is None:
+            self.offset = offset
+            self.grouped_list = grouped_list
+            return grouped_list
+        else:
+            return offset, grouped_list
+
+    def compile_tomo_expts(self):
+        """
+        This method compiles the tomography experiment circuits and prepares them for simulation. Every time the
+        circuits are adjusted, re-compiling the tomography experiments is required to affect the outcome.
+        """
+
         self.experiment_list = []
-        for group in grouped_list:
+        for group in self.grouped_list:
 
             self.experiment_list.append(GroupedPauliSetting(group, qc=self.qc, ref_state=self.ref_state,
                                                             ansatz=self.ansatz, shotN=self.shotN,
@@ -464,6 +494,15 @@ class VQEexperiment:
         Egs = min(w).real
 
         return Egs
+
+    def get_grouped_paulis(self):
+        """
+        This method returns the Hamiltonian as a sorted list of lists of commuting Pauli strings.
+
+        :return: grouped_list, a list of lists of commuting Pauli strings
+        :rtype: list()
+        """
+        return self.grouped_list
 
     def get_qubit_req(self):
         """

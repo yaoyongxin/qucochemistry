@@ -7,7 +7,7 @@ Qu & Co Quantum Code - Chemistry
 :alt: Documentation Status
 
 .. image:: https://mybinder.org/badge_logo.svg
- :target: https://mybinder.org/v2/gh/qu-co/qucochemistry/master
+ :target: https://mybinder.org/v2/gh/qu-co/qucochemistry/master?filepath=examples%2FTutorial_Single_molecule_end_to_end_VQE.ipynb
 
 The `Qu & Co Chemistry <http://www.quandco.com>`__ package is an open source library (licensed under Apache 2) for compiling and running quantum chemistry algorithms on Rigetti's Forest quantum computing platform.
 
@@ -64,7 +64,7 @@ background with the following commands:
 
 On Windows just execute :code:`qvm -S` and :code:`quilc -S` commands in two separate cmd terminals. 
 
-For more details on how to use the library, several tutorials on Jupyter notebook are available `here <https://github.com/qu-co/qucochemistry/tree/master/examples/Tutorial_Single_molecule_end_to_end_VQE.ipynb>`__.
+For more details on how to use the library, several tutorials on Jupyter notebook are available `here <https://github.com/qu-co/qucochemistry/tree/master/examples/>`__ . Dynamic interaction via MyBinder can be accessed `here <https://mybinder.org/v2/gh/qu-co/qucochemistry/master>`__ .
 To be able run end-to-end programs, you should install PySCF and OpenFermion-PySCF as additional dependencies with pip:
 
 .. code-block:: bash

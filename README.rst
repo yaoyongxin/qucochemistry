@@ -3,11 +3,19 @@ Qu & Co Quantum Code - Chemistry
 ================================
 
 .. image:: https://readthedocs.org/projects/qucochemistry/badge/?version=latest
-:target: https://qucochemistry.readthedocs.io/en/latest/?badge=latest
-:alt: Documentation Status
+ :target: https://qucochemistry.readthedocs.io/en/latest/documentation.html
+ :alt: Documentation Status
+ 
+.. image:: https://badge.fury.io/py/qucochemistry.svg
+ :target: https://badge.fury.io/py/qucochemistry
+ 
+.. image:: https://anaconda.org/quco/qucochemistry/badges/version.svg   
+ :target: https://anaconda.org/quco/qucochemistry
 
 .. image:: https://mybinder.org/badge_logo.svg
- :target: https://mybinder.org/v2/gh/qu-co/qucochemistry/master?filepath=examples%2FTutorial_Single_molecule_end_to_end_VQE.ipynb
+ :target: https://mybinder.org/v2/gh/qu-co/qucochemistry/master?filepath=examples
+ 
+.. image:: https://img.shields.io/badge/python-3.7-brightgreen.svg
 
 The `Qu & Co Chemistry <http://www.quandco.com>`__ package is an open source library (licensed under Apache 2) for compiling and running quantum chemistry algorithms on Rigetti's Forest quantum computing platform.
 

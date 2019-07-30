@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.abspath('../qucochemistry'))
 project = 'Qu & Co Quantum Chemistry Package'
 copyright = '2019, Vincent Elfving'
 author = 'Vincent Elfving'
-
+master_doc = 'index'
 
 # -- General configuration ---------------------------------------------------
 

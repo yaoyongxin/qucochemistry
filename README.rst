@@ -72,7 +72,7 @@ background with the following commands:
 
 On Windows just execute :code:`qvm -S` and :code:`quilc -S` commands in two separate cmd terminals. 
 
-For more details on how to use the library, several tutorials on Jupyter notebook are available `here <https://github.com/qu-co/qucochemistry/tree/master/examples/>`__ . Dynamic interaction via MyBinder can be accessed `here <https://mybinder.org/v2/gh/qu-co/qucochemistry/master>`__ .
+For more details on how to use the library, several tutorials on Jupyter notebook are available `here <https://github.com/qu-co/qucochemistry/tree/master/examples/>`__. 
 To be able run end-to-end programs, you should install PySCF and OpenFermion-PySCF as additional dependencies with pip:
 
 .. code-block:: bash
@@ -81,6 +81,20 @@ To be able run end-to-end programs, you should install PySCF and OpenFermion-PyS
 
 If you created the Conda environment as described in the previous section, you should be able to install these dependencies within 
 the environment with the same command.
+
+
+**With Docker container**
+
+The library can also be used in Jupyter notebooks hosted within a Docker container. You should have both `docker` and `docker-compose` installed in your system. 
+
+To setup the Docker environment in the project root directory run:
+
+.. code-block:: bash
+
+  docker-compose up -d
+
+Now you can access a Jupyter notebook in your browser at :code:`http://127.0.0.1:8888` with Qu&Co Chemistry library available. Navigate to the `examples/` folder to run the tutorial notebooks.
+
 
 
 Development

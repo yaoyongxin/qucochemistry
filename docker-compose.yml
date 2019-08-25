@@ -1,0 +1,22 @@
+version: "3"
+services:
+  quco:
+    build:
+      context: "."
+      dockerfile: "./deploy/Dockerfile"
+    image: "quco:latest"
+    ports:
+      - "8888:8888"
+    environment:
+      - QVM_URL=http://qvm:5000
+      - QUILC_URL=tcp://quilc:5555
+  quilc:
+    image: "rigetti/quilc"
+    command: "-R"
+    ports:
+      - "5555:5555"
+  qvm :
+    image: "rigetti/qvm"
+    command: "-S"
+    ports:
+      - "5000:5000"

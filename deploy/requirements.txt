@@ -1,6 +1,5 @@
 alabaster==0.7.12
 antlr4-python3-runtime==4.7.2
-attrs==19.1.0
 Babel==2.7.0
 backcall==0.1.0
 bleach==3.1.0
@@ -58,7 +57,8 @@ pyzmq==18.0.2
 qtconsole==4.5.1
 requests==2.22.0
 rpcq==2.7.1
-ruamel.yaml==0.15.100
+ruamel.yaml==0.16.5
+ruamel.yaml.clib==0.1.2
 scipy==1.2.0
 Send2Trash==1.5.0
 six==1.12.0

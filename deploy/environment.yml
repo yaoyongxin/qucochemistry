@@ -1,12 +1,12 @@
-name: qucochemistry
+name: qucochemistry_updated
 channels:
   - defaults
   - conda-forge
   - psi4
 dependencies:
   - _libgcc_mutex=0.1=main
-  - ca-certificates=2019.5.15=0
-  - certifi=2019.6.16=py37_0
+  - ca-certificates=2019.5.15=1
+  - certifi=2019.6.16=py37_1
   - libedit=3.1.20181209=hc058e9b_0
   - libffi=3.2.1=hd88cf55_4
   - libgcc-ng=9.1.0=hdf63c60_0
@@ -24,7 +24,6 @@ dependencies:
   - zlib=1.2.11=h7b6447c_3
   - pip:
     - antlr4-python3-runtime==4.7.2
-    - attrs==19.1.0
     - backcall==0.1.0
     - bleach==3.1.0
     - chardet==3.0.4
@@ -72,7 +71,8 @@ dependencies:
     - qtconsole==4.5.1
     - requests==2.22.0
     - rpcq==2.7.1
-    - ruamel-yaml==0.15.100
+    - ruamel-yaml==0.16.5
+    - ruamel-yaml-clib==0.1.2
     - scipy==1.2.0
     - send2trash==1.5.0
     - six==1.12.0
@@ -85,3 +85,5 @@ dependencies:
     - wcwidth==0.1.7
     - webencodings==0.5.1
     - widgetsnbextension==3.5.0
+prefix: /home/mdagrada/Software/local/miniconda3/envs/qucochemistry_updated
+

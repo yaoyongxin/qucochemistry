@@ -1,9 +1,8 @@
 import os
-import shutil
 import pytest
 from openfermion import MolecularData
 from pyquil import Program
-from pyquil.api import get_qc, local_qvm
+from pyquil.api import get_qc
 from pyquil.paulis import PauliSum, PauliTerm
 
 from qucochemistry.vqe import VQEexperiment
@@ -48,22 +47,6 @@ NSHOTS_SMALL = 1000
 NSHOTS_FLOAT = 10000.25
 NQUBITS_H = 2
 NQUBITS_H2 = 4
-
-
-# utilities
-
-# FIXME: this fixture should be removed in the future
-@pytest.fixture(scope="module")
-def local_qvm_quilc():
-    """
-    Execute test with local qvm and quilc running
-    """
-    if shutil.which('qvm') is None or shutil.which('quilc') is None:
-        yield
-        # pytest.exit("The unit tests requires 'qvm' and 'quilc' "
-        #             "executables to be installed locally.")
-    with local_qvm() as context:
-        yield context
 
 
 # default fixture values

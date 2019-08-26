@@ -9,7 +9,7 @@ from . conftest import ground_states, HAMILTONIAN2, NQUBITS_H, NQUBITS_H2, HAMIL
 
 
 @pytest.mark.parametrize('vqe_tomography', [True, False])
-def test_static_custom_program_strategy(vqe_parametric, vqe_tomography, local_qvm_quilc):
+def test_static_custom_program_strategy(vqe_parametric, vqe_tomography):
     gs = vqe_parametric.get_exact_gs()
     ec = vqe_parametric.objective_function()
     assert np.isclose(gs, ground_states[vqe_parametric.strategy][0], atol=1e-3)
@@ -22,7 +22,7 @@ def test_static_custom_program_strategy(vqe_parametric, vqe_tomography, local_qv
 
 @pytest.mark.parametrize('vqe_tomography', [True, False])
 @pytest.mark.parametrize('vqe_strategy', ['HF', 'UCCSD'])
-def test_strategy_parametric(vqe_parametric, vqe_tomography, vqe_strategy, local_qvm_quilc):
+def test_strategy_parametric(vqe_parametric, vqe_tomography, vqe_strategy):
     ec = vqe_parametric.objective_function()
     gs = vqe_parametric.get_exact_gs()
     assert np.isclose(gs, ground_states[vqe_parametric.strategy][0], atol=1e-2)
@@ -32,14 +32,14 @@ def test_strategy_parametric(vqe_parametric, vqe_tomography, vqe_strategy, local
 @pytest.mark.parametrize('vqe_tomography', [True, False])
 @pytest.mark.parametrize('vqe_strategy', ['UCCSD'])
 @pytest.mark.parametrize('vqe_method', ["WFS", "Numpy"])
-def test_strategy_fixed(vqe_fixed, vqe_tomography, vqe_strategy, vqe_method, local_qvm_quilc):
+def test_strategy_fixed(vqe_fixed, vqe_tomography, vqe_strategy, vqe_method):
     ec = vqe_fixed.objective_function()
     gs = vqe_fixed.get_exact_gs()
     assert np.isclose(gs, ground_states[vqe_fixed.strategy][0], atol=1e-2)
     assert np.isclose(ec, ground_states[vqe_fixed.strategy][1], atol=1e-2)
 
 
-def test_large_diagonalization(vqe_parametric, vqe_tomography, vqe_strategy, vqe_method, local_qvm_quilc):
+def test_large_diagonalization(vqe_parametric, vqe_tomography, vqe_strategy, vqe_method):
     custom_ham = PauliSum([PauliTerm(*x) for x in HAMILTONIAN_LARGE])
     gs_with_ham = vqe_parametric.get_exact_gs(hamiltonian=custom_ham)
     assert np.isclose(gs_with_ham, -37.6, atol=1e-4)

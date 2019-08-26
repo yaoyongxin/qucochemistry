@@ -21,9 +21,8 @@ def circuit(is_sparse):
 
 @pytest.mark.parametrize('vqe_strategy', ["custom_program", "UCCSD"])
 @pytest.mark.parametrize('vqe_method', ["WFS"])
-def test_variational_parametric_end_to_end(vqe_parametric, local_qvm_quilc):
+def test_variational_parametric_end_to_end(vqe_parametric):
 
-    # FIXME: the local_qvm_quilc fixture does not work with this option
     if vqe_parametric.strategy == "UCCSD":
         pytest.skip("local_qvm function currently not working with UCCSD strategy")
 
@@ -40,7 +39,7 @@ def test_variational_parametric_end_to_end(vqe_parametric, local_qvm_quilc):
 
 @pytest.mark.parametrize('vqe_strategy', ["UCCSD"])
 @pytest.mark.parametrize('vqe_method', ["linalg"])
-def test_variational_parametric_end_to_end_linalg(vqe_parametric, local_qvm_quilc):
+def test_variational_parametric_end_to_end_linalg(vqe_parametric):
 
     gs_initial = vqe_parametric.get_exact_gs()
     obj_fn_initial = vqe_parametric.objective_function()
@@ -55,7 +54,7 @@ def test_variational_parametric_end_to_end_linalg(vqe_parametric, local_qvm_quil
 @pytest.mark.parametrize('vqe_strategy', ["UCCSD"])
 @pytest.mark.parametrize('vqe_method', ["linalg"])
 @pytest.mark.parametrize('is_sparse', [True, False])
-def test_unitary_matrix_linalg_sparse(vqe_parametric, circuit, local_qvm_quilc):
+def test_unitary_matrix_linalg_sparse(vqe_parametric, circuit):
 
     gs_initial = vqe_parametric.get_exact_gs()
     obj_fn_initial = vqe_parametric.objective_function()

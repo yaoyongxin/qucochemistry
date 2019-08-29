@@ -17,6 +17,10 @@ Qu & Co Quantum Code - Chemistry
  
 .. image:: https://img.shields.io/badge/python-3.7-brightgreen.svg
 
+.. image:: https://travis-ci.org/qu-co/qucochemistry.svg?branch=master 
+ :target: https://travis-ci.org/qu-co/qucochemistry 
+
+
 The `Qu & Co Chemistry <http://www.quandco.com>`__ package is an open source library (licensed under Apache 2) for compiling and running quantum chemistry algorithms on Rigetti's Forest quantum computing platform.
 
 Installation

@@ -2,6 +2,25 @@
 Qu & Co Quantum Code - Chemistry
 ================================
 
+.. image:: https://readthedocs.org/projects/qucochemistry/badge/?version=latest
+ :target: https://qucochemistry.readthedocs.io/en/latest/documentation.html
+ :alt: Documentation Status
+ 
+.. image:: https://badge.fury.io/py/qucochemistry.svg
+ :target: https://badge.fury.io/py/qucochemistry
+ 
+.. image:: https://anaconda.org/quco/qucochemistry/badges/version.svg   
+ :target: https://anaconda.org/quco/qucochemistry
+
+.. image:: https://mybinder.org/badge_logo.svg
+ :target: https://mybinder.org/v2/gh/qu-co/qucochemistry/master?filepath=examples
+ 
+.. image:: https://img.shields.io/badge/python-3.7-brightgreen.svg
+
+.. image:: https://travis-ci.org/qu-co/qucochemistry.svg?branch=master 
+ :target: https://travis-ci.org/qu-co/qucochemistry 
+
+
 The `Qu & Co Chemistry <http://www.quandco.com>`__ package is an open source library (licensed under Apache 2) for compiling and running quantum chemistry algorithms on Rigetti's Forest quantum computing platform.
 
 Installation
@@ -57,7 +76,7 @@ background with the following commands:
 
 On Windows just execute :code:`qvm -S` and :code:`quilc -S` commands in two separate cmd terminals. 
 
-For more details on how to use the library, several tutorials on Jupyter notebook are available `here <https://github.com/qu-co/qucochemistry/tree/master/examples/Tutorial_Single_molecule_end_to_end_VQE.ipynb>`__.
+For more details on how to use the library, several tutorials on Jupyter notebook are available `here <https://github.com/qu-co/qucochemistry/tree/master/examples/>`__. 
 To be able run end-to-end programs, you should install PySCF and OpenFermion-PySCF as additional dependencies with pip:
 
 .. code-block:: bash
@@ -66,6 +85,20 @@ To be able run end-to-end programs, you should install PySCF and OpenFermion-PyS
 
 If you created the Conda environment as described in the previous section, you should be able to install these dependencies within 
 the environment with the same command.
+
+
+**With Docker container**
+
+The library can also be used in Jupyter notebooks hosted within a Docker container. You should have both `docker` and `docker-compose` installed in your system. 
+
+To setup the Docker environment in the project root directory run:
+
+.. code-block:: bash
+
+  docker-compose up -d
+
+Now you can access a Jupyter notebook in your browser at :code:`http://127.0.0.1:8888` with Qu&Co Chemistry library available. Navigate to the `examples/` folder to run the tutorial notebooks.
+
 
 
 Development

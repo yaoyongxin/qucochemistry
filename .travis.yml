@@ -1,0 +1,27 @@
+language: python 
+
+# Python3.7 not available for trusty distribution
+dist: 
+  - xenial
+
+python:
+  - "3.6"
+  - "3.7"
+
+services:
+  - docker
+
+before_install:
+  - docker pull rigetti/qvm
+  - docker pull rigetti/quilc
+  - docker run -d -it -p 5555:5555 rigetti/quilc -S
+  - docker run -d -it -p 5000:5000 rigetti/qvm -S
+
+install:
+  - pip install -r deploy/requirements.txt
+  - pip install -e .
+  - pip install pytest pytest-cov sphinx sphinx_rtd_theme
+
+script:
+- cd docs && make html && cd ..
+- pytest -v --cov=qucochemistry

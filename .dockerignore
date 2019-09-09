@@ -1,0 +1,6 @@
+docker-compose.yml
+**.git*
+**.cov*
+**cov
+**__pycache__
+tests

@@ -7,7 +7,7 @@ from qucochemistry.circuits import uccsd_ansatz_circuit_parametric, uccsd_ansatz
 
 
 @pytest.mark.parametrize('is_parametric', [True])
-def test_uccsd_ansatz_circuit_parametric(sample_molecule, h2_programs):
+def test_uccsd_ansatz_circuit_parametric(sample_molecule, h2_programs, is_parametric):
 
     ansatz = uccsd_ansatz_circuit_parametric(sample_molecule.n_orbitals, sample_molecule.n_electrons)
     assert isinstance(ansatz, Program)

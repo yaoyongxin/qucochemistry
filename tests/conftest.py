@@ -1,9 +1,8 @@
 import os
-import shutil
 import pytest
 from openfermion import MolecularData
 from pyquil import Program
-from pyquil.api import get_qc, local_qvm
+from pyquil.api import get_qc
 from pyquil.paulis import PauliSum, PauliTerm
 
 from qucochemistry.vqe import VQEexperiment
@@ -48,57 +47,6 @@ NSHOTS_SMALL = 1000
 NSHOTS_FLOAT = 10000.25
 NQUBITS_H = 2
 NQUBITS_H2 = 4
-
-
-# utilities
-
-
-# FIXME: remove this code when local_qvm_quilc will be properly tested
-# def start_qvm(fn):
-#     import subprocess
-#     import decorator
-#     """
-#     This decorator ensures that in the the context where the decorated function is executed
-#     the following processes are running:
-#     >> qvm -S
-#     >> quilc -S
-#
-#     They needed to compile and execute a program on the quantum virtual machine. When
-#     the context is terminated also the processes are.
-#     """
-#     def wrapper(fn, *args):
-#
-#         # start the QVM and quantum compiler processes
-#         qvm = subprocess.Popen(['qvm', '-S'],
-#                                stdout=subprocess.PIPE,
-#                                stderr=subprocess.PIPE)
-#
-#         quilc = subprocess.Popen(['quilc', '-S'],
-#                                  stdout=subprocess.PIPE,
-#                                  stderr=subprocess.PIPE)
-#
-#         # execute the wrapper function
-#         res = fn(*args)
-#
-#         # stop the processes
-#         qvm.terminate()
-#         quilc.terminate()
-#         return res
-#
-#     return decorator.decorator(wrapper, fn)
-
-
-@pytest.fixture(scope="module")
-def local_qvm_quilc():
-    """
-    Execute test with local qvm and quilc running
-    """
-    if shutil.which('qvm') is None or shutil.which('quilc') is None:
-        pytest.exit("The unit tests requires 'qvm' and 'quilc' "
-                    "executables to be installed locally.")
-
-    with local_qvm() as context:
-        yield context
 
 
 # default fixture values

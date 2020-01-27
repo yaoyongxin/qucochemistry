@@ -6,12 +6,15 @@ from pyquil.pyqvm import PyQVM
 from pyquil.quil import Program, percolate_declares
 from pyquil.gates import I, RESET, MEASURE
 from pyquil.paulis import PauliSum, PauliTerm, ID
-from pyquil.operator_estimation import TomographyExperiment, group_experiments, ExperimentSetting, TensorProductState
+from pyquil.operator_estimation import TomographyExperiment, \
+        group_experiments, ExperimentSetting, TensorProductState
 
 from openfermion.hamiltonians import MolecularData
-from openfermion.utils import uccsd_singlet_generator, normal_ordered, uccsd_singlet_get_packed_amplitudes,\
-    expectation, jw_hartree_fock_state
-from openfermion.transforms import jordan_wigner, get_sparse_operator, get_fermion_operator
+from openfermion.utils import uccsd_singlet_generator, normal_ordered, \
+        uccsd_singlet_get_packed_amplitudes, \
+        expectation, jw_hartree_fock_state
+from openfermion.transforms import jordan_wigner, get_sparse_operator, \
+        get_fermion_operator
 
 from scipy.sparse.linalg import expm_multiply
 
@@ -20,80 +23,142 @@ import scipy as sp
 
 import time
 
-from qucochemistry.utils import qubitop_to_pyquilpauli, pyquilpauli_to_qubitop
-from qucochemistry.circuits import augment_program_with_memory_values, pauli_meas, ref_state_preparation_circuit, \
+from qucochemistry.utils import qubitop_to_pyquilpauli, \
+        pyquilpauli_to_qubitop
+from qucochemistry.circuits import augment_program_with_memory_values, \
+        pauli_meas, ref_state_preparation_circuit, \
     uccsd_ansatz_circuit, uccsd_ansatz_circuit_parametric
 from qucochemistry.utils import minimizer
 
 
 class VQEexperiment:
 
-    def __init__(self, qc: Union[QuantumComputer, None] = None, hamiltonian: Union[PauliSum, List[PauliTerm], None] =
-                 None, molecule: MolecularData = None, method: str = 'Numpy', strategy: str = 'UCCSD',
-                 optimizer: str = 'BFGS', maxiter: int = 100000000, shotN: int = 10000, active_reset: bool = True,
-                 tomography: bool = False, verbose: bool = False, parametric: bool = False, custom_qubits=None):
+    def __init__(self, qc: Union[QuantumComputer, None] = None,
+            hamiltonian: Union[PauliSum, List[PauliTerm], None] = None,
+            molecule: MolecularData = None,
+            method: str = 'Numpy',
+            strategy: str = 'UCCSD',
+            optimizer: str = 'BFGS',
+            maxiter: int = 100000000,
+            shotN: int = 10000,
+            active_reset: bool = True,
+            tomography: bool = False,
+            verbose: bool = False,
+            parametric: bool = False,
+            custom_qubits = None):
         """
 
-        VQE experiment class. Initialize an instance of this class to prepare a VQE experiment. One may instantiate this class either based on an OpenFermion MolecularData object (containing a chemistry problem Hamiltonian) or manually suggest a Hamiltonian.
+        VQE experiment class.
+        Initialize an instance of this class to prepare a VQE experiment.
+        One may instantiate this class either based on
+        an OpenFermion MolecularData object
+        (containing a chemistry problem Hamiltonian)
+        or manually suggest a Hamiltonian.
 
-        The VQE can run circuits on different virtual or real backends: currently, we support the Rigetti QPU backend, locally running QVM, a WavefunctionSimulator, a NumpyWavefunctionSimulator, a PyQVM. Alternatively, one may run the VQE ansatz unitary directly (not decomposed as a circuit)  via direct exponentiation of the unitary ansatz, with the 'linalg' method. The different backends do not all support parametric gates (yet), and the user can specify whether or not to use it.
+        The VQE can run circuits on different virtual or real backends:
+        currently, we support the Rigetti QPU backend, locally running QVM,
+        a WavefunctionSimulator, a NumpyWavefunctionSimulator, a PyQVM.
+        Alternatively, one may run the VQE ansatz unitary directly
+        (not decomposed as a circuit)
+        via direct exponentiation of the unitary ansatz,
+        with the 'linalg' method.
+        The different backends do not all support parametric gates (yet),
+        and the user can specify whether or not to use it.
 
-        Currently, we support two built-in ansatz strategies and the option of setting your own ansatz circuit. The built-in UCCSD and HF strategies are based on data from MolecularData object and thus require one. For finding the groundstate of a custom Hamiltonian, it is required to manually set an ansatz strategy.
+        Currently, we support two built-in ansatz strategies
+        and the option of setting your own ansatz circuit.
+        The built-in UCCSD and HF strategies are based on data
+        from MolecularData object and thus require one.
+        For finding the groundstate of a custom Hamiltonian,
+        it is required to manually set an ansatz strategy.
 
-        Currently, the only classical optimizer for the VQE is the scipy.optimize.minimize module. This may be straightforwardly extended in future releases, contributions are welcome. This class can be initialized with any algorithm in the scipy class, and the max number of iterations can be specified.
+        Currently, the only classical optimizer for the VQE
+        is the scipy.optimize.minimize module.
+        This may be straightforwardly extended in future releases,
+        contributions are welcome.
+        This class can be initialized with any algorithm in the scipy class,
+        and the max number of iterations can be specified.
 
-        For some QuantumComputer objects, the qubit lattice is not numbered 0..N-1 but has architecture-specific logical labels. These need to be manually read from the lattice topology and specified in the list custom_qubits. On the physical hardware QPU, actively resetting the qubits is supported to speed up the repetition time of VQE.
+        For some QuantumComputer objects,
+        the qubit lattice is not numbered 0..N-1
+        but has architecture-specific logical labels.
+        These need to be manually read from the lattice topology
+        and specified in the list custom_qubits.
+        On the physical hardware QPU,
+        actively resetting the qubits is supported
+        to speed up the repetition time of VQE.
 
-        To debug and during development, set verbose=True to print output details to the console.
+        To debug and during development, set verbose=True
+        to print output details to the console.
 
         :param [QuantumComputer(),None] qc:  object
-        :param [PauliSum, list(PauliTerm)] hamiltonian: Hamiltonian which one would like to simulate
-        :param MolecularData molecule: OpenFermion Molecule data object. If this is given, the VQE module assumes a
-            chemistry experiment using OpenFermion
-        :param str method: string describing the Backend solver method. current options: {Numpy, WFS, linalg, QC}
-        :param str strategy: string describing circuit VQE strategy. current options: {UCCSD, HF, custom_program}
-        :param str optimizer: classical optimization algorithm, choose from scipy.optimize.minimize options
+        :param [PauliSum, list(PauliTerm)] hamiltonian:
+                Hamiltonian which one would like to simulate
+        :param MolecularData molecule: OpenFermion Molecule data object.
+                If this is given, the VQE module assumes a
+                chemistry experiment using OpenFermion
+        :param str method: string describing the Backend solver method.
+                current options: {Numpy, WFS, linalg, QC}
+        :param str strategy: string describing circuit VQE strategy.
+                current options: {UCCSD, HF, custom_program}
+        :param str optimizer: classical optimization algorithm,
+                choose from scipy.optimize.minimize options
         :param int maxiter: max number of iterations
         :param int shotN: number of shots in the Tomography experiments
-        :param bool active_reset:  whether or not to actively reset the qubits (see )
-        :param bool tomography: set to False for access to full wavefunction, set to True for just sampling from it
-        :param bool verbose: set to True for verbose output to the console, for all methods in this class
-        :param bool parametric: set to True to use parametric gate compilation, False to compile a new circuit for
-            every iteration
-        :param list() custom_qubits: list of qubits, i.e. [7,0,1,2] ordering the qubit IDs as they appear on the QPU
-            lattice of the QuantumComputer() object.
+        :param bool active_reset:  whether or not to actively reset the qubits
+        :param bool tomography: set to False for access to full wavefunction,
+                set to True for just sampling from it
+        :param bool verbose: set to True for verbose output to the console,
+                for all methods in this class
+        :param bool parametric: set to True to use parametric gate compilation,
+                False to compile a new circuit for every iteration
+        :param list() custom_qubits: list of qubits, i.e. [7,0,1,2] ordering
+                the qubit IDs as they appear on the QPU
+                lattice of the QuantumComputer() object.
 
         """
 
         if isinstance(hamiltonian, PauliSum):
             if molecule is not None:
-                raise TypeError('Please supply either a Hamiltonian object or a Molecule object, but not both.')            
+                raise TypeError('Please supply either a Hamiltonian object'
+                        ' or a Molecule object, but not both.')
             # Hamiltonian as a PauliSum, extracted to give a list instead
             self.pauli_list = hamiltonian.terms
-            self.n_qubits = self.get_qubit_req()  # assumes 0-(N-1) ordering and every pauli index is in use
+            self.n_qubits = self.get_qubit_req()
+            # assumes 0-(N-1) ordering and every pauli index is in use
         elif isinstance(hamiltonian, List):
             if molecule is not None:
-                raise TypeError('Please supply either a Hamiltonian object or a Molecule object, but not both.')  
+                raise TypeError('Please supply either a Hamiltonian object'
+                        ' or a Molecule object, but not both.')
             if len(hamiltonian) > 0:
                 if all([isinstance(term, PauliTerm) for term in hamiltonian]):
                     self.pauli_list = hamiltonian
                     self.n_qubits = self.get_qubit_req()
                 else:
-                    raise TypeError('Hamiltonian as a list must contain only PauliTerm objects')
+                    raise TypeError('Hamiltonian as a list must '
+                            'contain only PauliTerm objects')
             else:
-                print('Warning, empty hamiltonian passed, assuming identity Hamiltonian = 1')
-                self.pauli_list = [ID()]  # this is allowed in principle, but won't make a lot of sense to use.
+                print('Warning, empty hamiltonian passed, '
+                        'assuming identity Hamiltonian = 1')
+                self.pauli_list = [ID()]
+                # this is allowed in principle,
+                # but won't make a lot of sense to use.
         elif hamiltonian is None:
             if molecule is None:
-                raise TypeError('either feed a MolecularData object or a PyQuil Hamiltonian to this class')
+                raise TypeError('either feed a MolecularData object '
+                        'or a PyQuil Hamiltonian to this class')
             else:
-                self.H = normal_ordered(get_fermion_operator(molecule.get_molecular_hamiltonian()))  # store Fermionic
+                self.H = normal_ordered(get_fermion_operator(
+                        molecule.get_molecular_hamiltonian()))
+                # store Fermionic
                 # Hamiltonian in FermionOperator() instance
-                self.qubitop = jordan_wigner(self.H)  # Apply jordan_wigner transformation and store
+                self.qubitop = jordan_wigner(self.H)
+                # Apply jordan_wigner transformation and store
                 self.n_qubits = 2 * molecule.n_orbitals
                 self.pauli_list = qubitop_to_pyquilpauli(self.qubitop).terms
         else:
-            raise TypeError('hamiltonian must be a PauliSum or list of PauliTerms')
+            raise TypeError('hamiltonian must be a PauliSum '
+                    'or list of PauliTerms')
 
         # abstract QC. can refer to a qvm or qpu. QC architecture and available gates decide the compilation of the
         # programs!
@@ -172,28 +237,35 @@ class VQEexperiment:
         # whether to do tomography or just calculate the wavefunction
         self.tomography = tomography
 
-        # initialize offset for pauli terms with identity. this serves to avoid doing simulation for the identity
-        # operator, which always yields unity times the coefficient due to wavefunction normalization.
+        # initialize offset for pauli terms with identity.
+        # this serves to avoid doing simulation for the identity
+        # operator, which always yields unity times the coefficient
+        # due to wavefunction normalization.
         self.offset = 0
 
-        # set empty circuit unitary. This is used for the direct linear algebraic methods.
+        # set empty circuit unitary.
+        # This is used for the direct linear algebraic methods.
         self.circuit_unitary = None
 
         if strategy not in ['UCCSD', 'HF', 'custom_program']:
-            raise ValueError('please select a strategy from UCCSD, HF, custom_program or modify this class with your '
-                             'own options')
+            raise ValueError('please select a strategy from UCCSD,'
+                    ' HF, custom_program or modify this class with your '
+                    'own options')
 
         if strategy == 'UCCSD':
-            # load UCCSD initial amps from the CCSD amps in the MolecularData() object
-            amps = uccsd_singlet_get_packed_amplitudes(self.molecule.ccsd_single_amps, self.molecule.ccsd_double_amps,
-                                                       n_qubits=self.molecule.n_orbitals * 2,
-                                                       n_electrons=self.molecule.n_electrons)
+            # load UCCSD initial amps from the CCSD amps
+            # in the MolecularData() object
+            amps = uccsd_singlet_get_packed_amplitudes(
+                    self.molecule.ccsd_single_amps,
+                    self.molecule.ccsd_double_amps,
+                    n_qubits=self.molecule.n_orbitals * 2,
+                    n_electrons=self.molecule.n_electrons)
             self.initial_packed_amps = amps
         else:
             # allocate empty initial angles for the circuit. modify later.
             self.initial_packed_amps = []
 
-        if (strategy is 'UCCSD') and (method is not 'linalg'):  # UCCSD circuit strategy preparations
+        if (strategy == 'UCCSD') and (method != 'linalg'):  # UCCSD circuit strategy preparations
             self.ref_state = ref_state_preparation_circuit(molecule, ref_type='HF', cq=self.custom_qubits)
 
             if self.parametric_way:
@@ -204,10 +276,10 @@ class VQEexperiment:
                 # in the non-parametric_way, the circuit has hard-coded angles for the gates.
                 self.ansatz = uccsd_ansatz_circuit(self.initial_packed_amps, self.molecule.n_orbitals,
                                                    self.molecule.n_electrons, cq=self.custom_qubits)
-        elif strategy is 'HF':
+        elif strategy == 'HF':
             self.ref_state = ref_state_preparation_circuit(self.molecule, ref_type='HF', cq=self.custom_qubits)
             self.ansatz = Program()
-        elif strategy is 'custom_program':
+        elif strategy == 'custom_program':
             self.parametric_way = True
             self.ref_state = Program()
             self.ansatz = Program()
@@ -230,11 +302,12 @@ class VQEexperiment:
                 raise ValueError('The WFS method is not intended to be used with a custom qubit lattice or QuantumComputer object.')
         elif self.method == 'Numpy':
             if self.parametric_way:
-                raise ValueError('NumpyWavefunctionSimulator() backend does not yet support parametric programs.')
+                raise ValueError('NumpyWavefunctionSimulator() backend'
+                        ' does not yet support parametric programs.')
             if (self.qc is not None) or (self.custom_qubits is not None):
                 raise ValueError('NumpyWavefunctionSimulator() backend is not intended to be used with a '
                                  'QuantumComputer() object or custom lattice. Consider using PyQVM instead')
-        elif self.method == 'linalg':           
+        elif self.method == 'linalg':
             if molecule is not None:
                 # sparse initial state vector from the MolecularData() object
                 self.initial_psi = jw_hartree_fock_state(self.molecule.n_electrons, 2*self.molecule.n_orbitals)
@@ -250,17 +323,23 @@ class VQEexperiment:
 
     def compile_tomo_expts(self):
         """
-        This method compiles the tomography experiment circuits and prepares them for simulation. Every time the
-        circuits are adjusted, re-compiling the tomography experiments is required to affect the outcome.
+        This method compiles the tomography experiment circuits
+        and prepares them for simulation.
+        Every time the circuits are adjusted,
+        re-compiling the tomography experiments
+        is required to affect the outcome.
         """
         self.offset = 0
-        # use Forest's sorting algo from the Tomography suite to group Pauli measurements together
+        # use Forest's sorting algo from the Tomography suite
+        # to group Pauli measurements together
         experiments = []
         for term in self.pauli_list:
-            # if the Pauli term is an identity operator, add the term's coefficient directly to the VQE class' offset
+            # if the Pauli term is an identity operator,
+            # add the term's coefficient directly to the VQE class' offset
             if len(term.operations_as_set()) == 0:
                 self.offset += term.coefficient.real
             else:
+                # initial state and term pair.
                 experiments.append(ExperimentSetting(TensorProductState(), term))
 
         suite = TomographyExperiment(experiments, program=Program())
@@ -279,12 +358,18 @@ class VQEexperiment:
 
         self.experiment_list = []
         for group in grouped_list:
-
-            self.experiment_list.append(GroupedPauliSetting(group, qc=self.qc, ref_state=self.ref_state,
-                                                            ansatz=self.ansatz, shotN=self.shotN,
-                                                            parametric_way=self.parametric_way, n_qubits=self.n_qubits,
-                                                            method=self.method, verbose=self.verbose,
-                                                            cq=self.custom_qubits))
+            self.experiment_list.append(
+                    GroupedPauliSetting(group,
+                            qc=self.qc,
+                            ref_state=self.ref_state,
+                            ansatz=self.ansatz,
+                            shotN=self.shotN,
+                            parametric_way=self.parametric_way,
+                            n_qubits=self.n_qubits,
+                            method=self.method,
+                            verbose=self.verbose,
+                            cq=self.custom_qubits,
+                            ))
 
     def objective_function(self, amps=None):
         """
@@ -409,12 +494,12 @@ class VQEexperiment:
             starting_angles = np.array(theta)
         else:
             raise TypeError('Please supply the circuit parameters as a list or np.ndarray')
-        
+
         if not isinstance(maxiter, int):
             raise TypeError('Max number of iterations, maxiter, should be a positive integer.')
         elif maxiter < 0:
             raise ValueError('Max number of iterations, maxiter, should be positive.')
-        
+
         # store historical values of the optimizer
         self.history = []
 
@@ -619,67 +704,98 @@ class VQEexperiment:
 
 class GroupedPauliSetting:
 
-    def __init__(self, list_gsuit_paulis: List[PauliTerm], qc: QuantumComputer, ref_state: Program, ansatz: Program,
-                 shotN: int, parametric_way: bool, n_qubits: int, active_reset: bool = True, cq=None, method='QC',
-                 verbose: bool = False):
+    def __init__(self,
+            list_gsuit_paulis: List[PauliTerm],
+            qc: QuantumComputer,
+            ref_state: Program,
+            ansatz: Program,
+            shotN: int,
+            parametric_way: bool,
+            n_qubits: int,
+            active_reset: bool = True,
+            cq=None,
+            method='QC',
+            verbose: bool = False):
         """
-        A tomography experiment class for use in VQE. In a real experiment, one only has access to measurements in
-        the Z-basis, giving a result 0 or 1 for each qubit. The Hamiltonian may have terms like sigma_x or sigma_y,
-        for which a basis rotation is required. As quantum mechanics prohibits measurements in multiple bases at once,
-        the Hamiltonian needs to be grouped into commuting Pauli terms and for each set of terms the appropriate basis
+        A tomography experiment class for use in VQE.
+        In a real experiment, one only has access to measurements
+        in the Z-basis, giving a result 0 or 1 for each qubit.
+        The Hamiltonian may have terms like sigma_x or sigma_y,
+        for which a basis rotation is required.
+        As quantum mechanics prohibits measurements in multiple bases at once,
+        the Hamiltonian needs to be grouped into commuting Pauli terms
+        and for each set of terms the appropriate basis
         rotations is applied to each qubits.
 
-        A parity_matrix is constructed to keep track of what consequence a qubit measurement of 0 or 1 has as a
+        A parity_matrix is constructed to keep track of
+        what consequence a qubit measurement of 0 or 1 has as a
         contribution to the Pauli estimation.
 
-        The experiments are constructed as objects with class methods to run and adjust them.
+        The experiments are constructed as objects with class methods
+        to run and adjust them.
 
 
         Instantiate using the following parameters:
 
-        :param list() list_gsuit_paulis: list of Pauli terms which can be measured at the same time (they share a TPB!)
-        :param QuantumComputer qc: QuantumComputer() object which will simulate the terms
-        :param Program ref_state: Program() circuit object which produces the initial reference state (f.ex. Hartree-Fock)
-        :param Program ansatz: Program() circuit object which produces the ansatz (f.ex. UCCSD)
+        :param list() list_gsuit_paulis: list of Pauli terms which
+                can be measured at the same time (they share a TPB!)
+        :param QuantumComputer qc: QuantumComputer() object which
+                will simulate the terms
+        :param Program ref_state: Program() circuit object which
+                produces the initial reference state (f.ex. Hartree-Fock)
+        :param Program ansatz: Program() circuit object which
+                produces the ansatz (f.ex. UCCSD)
         :param int shotN: number of shots to run this Setting for
-        :param bool parametric_way: boolean whether to use parametric gates or hard-coded gates
+        :param bool parametric_way: boolean whether to
+                use parametric gates or hard-coded gates
         :param int n_qubits: total number of qubits used for the program
-        :param bool active_reset: boolean whether or not to actively reset the qubits
-        :param list() cq: list of qubit labels instead of the default [0,1,2,3,...,N-1]
-        :param str method: string describing the computational method from {QC, linalg, WFS, Numpy}
-        :param bool verbose: boolean, whether or not to give verbose output during execution
+        :param bool active_reset: boolean whether or not
+                to actively reset the qubits
+        :param list() cq: list of qubit labels instead of
+                the default [0,1,2,3,...,N-1]
+        :param str method: string describing the computational
+                method from {QC, linalg, WFS, Numpy}
+        :param bool verbose: boolean, whether or not to give verbose
+                output during execution
 
         """
         self.parametric_way = parametric_way
         self.pauli_list = list_gsuit_paulis
         self.shotN = shotN
         self.method = method
-        self.parity_matrix = self.construct_parity_matrix(list_gsuit_paulis, n_qubits)
+        self.parity_matrix = self.construct_parity_matrix(
+                list_gsuit_paulis, n_qubits)
         self.verbose = verbose
         self.n_qubits = n_qubits
         self.cq = cq
 
         if qc is not None:
             if qc.name[-4:] == 'yqvm' and self.cq is not None:
-                raise NotImplementedError('manual qubit lattice feed for PyQVM not yet implemented. please set cq=None')
+                raise NotImplementedError('manual qubit lattice feed'
+                        ' for PyQVM not yet implemented. please set cq=None')
         else:
             if self.method == 'QC':
-                raise ValueError('method is QC but no QuantumComputer object supplied.')
+                raise ValueError('method is QC but no QuantumComputer'
+                        ' object supplied.')
 
         # instantiate a new program and construct it for compilation
         prog = Program()
 
         if self.method == 'QC':
-            ro = prog.declare('ro', memory_type='BIT', memory_size=self.n_qubits)
+            ro = prog.declare('ro',
+                    memory_type='BIT',
+                    memory_size=self.n_qubits)
 
         if active_reset and self.method == 'QC':
-            if not qc.name[-4:] == 'yqvm':  # in case of PyQVM, can not contain reset statement
+            if not qc.name[-4:] == 'yqvm':
+                # in case of PyQVM, can not contain reset statement
                 prog += RESET()
 
         # circuit which produces reference state (f.ex. Hartree-Fock)
         prog += ref_state
 
-        # produce which prepares an ansatz state starting from a reference state (f.ex. UCCSD or swap network UCCSD)
+        # produce which prepares an ansatz state starting
+        # from a reference state (f.ex. UCCSD or swap network UCCSD)
         prog += ansatz
 
         self.coefficients = []
@@ -688,21 +804,27 @@ class GroupedPauliSetting:
             # let's store the pauli term coefficients for later use
             self.coefficients.append(pauli.coefficient)
 
-            # also, we perform the necessary rotations going from X or Y to Z basis
+            # also, we perform the necessary rotations
+            # going from X or Y to Z basis
             for (i, st) in pauli.operations_as_set():
-                if st is not 'I' and i not in already_done:
-                    # note that 'i' is the *logical* index corresponding to the pauli.
-                    if cq is not None:  # if the logical qubit should be remapped to physical qubits, access this cq
+                if st != 'I' and i not in already_done:
+                    # note that 'i' is the *logical* index
+                    # corresponding to the pauli.
+                    if cq is not None:
+                        # if the logical qubit should be remapped
+                        # to physical qubits, access this cq
                         prog += pauli_meas(cq[i], st)
                     else:
                         prog += pauli_meas(i, st)
-                    # if we already have rotated the basis due to another term, don't do it again!
+                    # if we already have rotated the basis
+                    # due to another term, don't do it again!
                     already_done.append(i)
 
         self.pure_pyquil_program = Program(prog)
 
         if self.method == 'QC':
-            # measure the qubits and assign the result to classical register ro
+            # measure the qubits and assign the result
+            # to classical register ro
             for i in range(self.n_qubits):
                 if cq is not None:
                     prog += MEASURE(cq[i], ro[i])
@@ -711,7 +833,8 @@ class GroupedPauliSetting:
 
             prog2 = percolate_declares(prog)
 
-            # wrap in shotN number of executions on the qc, to get operator measurement by sampling
+            # wrap in shotN number of executions on the qc,
+            # to get operator measurement by sampling
             prog2.wrap_in_numshots_loop(shots=self.shotN)
 
             self.pyqvm_program = prog2
@@ -722,7 +845,8 @@ class GroupedPauliSetting:
                 # if self.verbose:  # debugging purposes
                 #    print('')
                 #    print(nq_program.native_quil_metadata)
-                self.pyquil_executable = qc.compiler.native_quil_to_executable(nq_program)
+                self.pyquil_executable = \
+                        qc.compiler.native_quil_to_executable(nq_program)
 
     def run_experiment(self, qc: Union[QuantumComputer, None], angles=None):
         """
@@ -758,7 +882,8 @@ class GroupedPauliSetting:
         elif qc.name[-4:] == '-qvm':
             # run the pre-compiled QUIL executable and use parametric compilation at run-time for a performance boost
             if self.parametric_way:
-                bitstrings = qc.run(self.pyquil_executable, memory_map={'theta': angles})
+                bitstrings = qc.run(self.pyquil_executable,
+                        memory_map={'theta': angles})
             else:  # when no angles are supplied it is assumed that the pyquil binary already has them: no memory_map
                 bitstrings = qc.run(self.pyquil_executable)
         elif qc.name[-4:] == 'yqvm':
@@ -772,11 +897,15 @@ class GroupedPauliSetting:
                 # prog = augment_program_with_memory_values(self.pyqvm_program, memory_map={'theta': angles})
                 # bitstrings = qc.run(prog)
         else:  # assumes the only other possibility is an actual QPU
-            # TODO: actually this should also work if a real QPU is supplied! enter additional wishes here
-            # run the pre-compiled QUIL executable and use parametric compilation at run-time for a performance boost
+            # TODO: actually this should also work if a real QPU is supplied!
+            # enter additional wishes here
+            # run the pre-compiled QUIL executable and
+            # use parametric compilation at run-time for a performance boost
             if self.parametric_way:
-                bitstrings = qc.run(self.pyquil_executable, memory_map={'theta': angles})
-            else:  # when no angles are supplied it is assumed that the pyquil binary already has them: no memory_map
+                bitstrings = qc.run(self.pyquil_executable,
+                        memory_map={'theta': angles})
+            else:  # when no angles are supplied it is assumed
+                  # that the pyquil binary already has them: no memory_map
                 bitstrings = qc.run(self.pyquil_executable)
 
         # t = time.time() # dev only
@@ -812,7 +941,7 @@ class GroupedPauliSetting:
             for term in trial_pauli_s:
                 ll = []
                 for (i, st) in term.operations_as_set():
-                    if st is not 'I':
+                    if st != 'I':
                         ll.append(i)
                 listi.append(ll)
             return listi
@@ -823,6 +952,6 @@ class GroupedPauliSetting:
 
         for j, term in enumerate(pauli_list):
             for (i, st) in term.operations_as_set():
-                if st is not 'I':
+                if st != 'I':
                     parity_matrix[i, j] = 1
         return parity_matrix

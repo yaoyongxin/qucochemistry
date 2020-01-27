@@ -27,10 +27,10 @@ setup(
     install_requires=[
         # The minimum spec for a working qucochemistry install.
         # note to developers: this should be a subset of requirements.txt
-        'numpy==1.15.4',
-        'scipy==1.2.0',
-        'openfermion==0.9.0',
-        'pyquil==2.7.2',
+        'numpy>=1.15.4',
+        'scipy>=1.2.0',
+        'openfermion>=0.9.0',
+        'pyquil>=2.7.2',
     ],
     packages=find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
     license="Apache 2",

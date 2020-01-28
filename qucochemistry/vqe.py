@@ -925,30 +925,21 @@ class GroupedPauliSetting:
     @staticmethod
     def construct_parity_matrix(pauli_list, n_qubits):
         """
-        This method constructs a matrix which is used to evaluate PauliTerm expectation values from an array of
-        bitstrings returned by qc.run(). See run_experiment() how this parity_matrix is used.
+        This method constructs a matrix which is used
+        to evaluate PauliTerm expectation values from an array of
+        bitstrings returned by qc.run().
+        See run_experiment() how this parity_matrix is used.
 
-        :param list(PauliTerm) pauli_list: list of PauliTerm() objects which should be measured. Assumes a list of
-            non-empty pauli terms only!
+        :param list(PauliTerm) pauli_list: list of PauliTerm() objects
+                which should be measured. Assumes a list of
+                non-empty pauli terms only!
         :param int n_qubits: number of qubits assumed for the parity matrix
 
-        :return: returns parity_matrix, 2D numpy-array of dimensions [n_qubits, len(pauli_list)]
+        :return: returns parity_matrix, 2D numpy-array
+                of dimensions [n_qubits, len(pauli_list)]
         :rtype: numpy.ndarray
         """
-
-        def pauli_list_to_indices(trial_pauli_s):
-            listi = []
-            for term in trial_pauli_s:
-                ll = []
-                for (i, st) in term.operations_as_set():
-                    if st != 'I':
-                        ll.append(i)
-                listi.append(ll)
-            return listi
-
-        a = pauli_list_to_indices(pauli_list)
-
-        parity_matrix = np.zeros([n_qubits, len(a)], dtype=int)
+        parity_matrix = np.zeros([n_qubits, len(pauli_list)], dtype=int)
 
         for j, term in enumerate(pauli_list):
             for (i, st) in term.operations_as_set():

@@ -160,15 +160,17 @@ class VQEexperiment:
             raise TypeError('hamiltonian must be a PauliSum '
                     'or list of PauliTerms')
 
-        # abstract QC. can refer to a qvm or qpu. QC architecture and available gates decide the compilation of the
+        # abstract QC. can refer to a qvm or qpu.
+        # QC architecture and available gates decide the compilation of the
         # programs!
         if isinstance(qc, QuantumComputer):
             self.qc = qc
         elif qc is None:
             self.qc = None
         else:
-            raise TypeError('qc must be a QuantumComputer object. If you do not use a QC backend, omit, or supply '
-                            'qc=None')
+            raise TypeError('qc must be a QuantumComputer object.'
+                    ' If you do not use a QC backend, omit, or supply '
+                    'qc=None')
 
         # number of shots in a tomography experiment
         if isinstance(shotN, int):
@@ -183,40 +185,49 @@ class VQEexperiment:
         if method in methodoptions:
             self.method = method
         else:
-            raise ValueError('choose a method from the following list: ' + str(methodoptions) +
-                             '. If a QPU, QVM or PyQVM is passed to qc, select QC.')
+            raise ValueError('choose a method from the following list: '\
+                    + str(methodoptions) +
+                    '. If a QPU, QVM or PyQVM is passed to qc, select QC.')
 
         # circuit strategy. choose from UCCSD, HF, custom_program
         strategyoptions = ['UCCSD', 'HF', 'custom_program']
         if strategy in strategyoptions:
             if (strategy in ['UCCSD', 'HF']) and molecule is None:
-                raise ValueError('Strategy selected, UCCSD or HF, requires a MolecularData object from PySCF as input.')
+                raise ValueError('Strategy selected, UCCSD or HF, '
+                        'requires a MolecularData object from PySCF as input.')
             self.strategy = strategy
         else:
-            raise ValueError('choose a circuit strategy from the following list: ' + str(strategyoptions))
+            raise ValueError('choose a circuit strategy from the'
+                    ' following list: ' + str(strategyoptions))
 
         # classical optimizer
-        classical_options = ['Nelder-Mead', 'Powell', 'CG', 'BFGS', 'Newton-CG', 'L-BFGS-B ', 'TNC', 'COBYLA',
-                             'SLSQP', 'trust-constr', 'dogleg', 'trust-ncg', 'trust-exact', 'trust-krylov']
+        classical_options = ['Nelder-Mead', 'Powell', 'CG', 'BFGS',
+                'Newton-CG', 'L-BFGS-B ', 'TNC', 'COBYLA',
+                'SLSQP', 'trust-constr', 'dogleg', 'trust-ncg',
+                'trust-exact', 'trust-krylov']
         if optimizer not in classical_options:
-            raise ValueError('choose a classical optimizer from the following list: ' + str(classical_options))
+            raise ValueError('choose a classical optimizer from'
+                    ' the following list: ' + str(classical_options))
         else:
             self.optimizer = optimizer
 
         # store the optimizer historical values
         self.history = []
 
-        # chemistry files. must be properly formatted in order to use a UCCSD ansatz (see MolecularData)
+        # chemistry files. must be properly formatted
+        # in order to use a UCCSD ansatz (see MolecularData)
         self.molecule = molecule
 
-        # whether or not the qubits should be actively reset. False will make the hardware wait for 3 coherence lengths
+        # whether or not the qubits should be actively reset.
+        # False will make the hardware wait for 3 coherence lengths
         # to go back to |0>
         self.active_reset = active_reset
 
         # max number of iterations for the classical optimizer
         self.maxiter = maxiter
 
-        # vqe results, stores output of scipy.optimize.minimize, a OptimizeResult object. initialize to None
+        # vqe results, stores output of scipy.optimize.minimize,
+        # a OptimizeResult object. initialize to None
         self.res = None
 
         # list of grouped experiments (only relevant to tomography)
@@ -265,19 +276,33 @@ class VQEexperiment:
             # allocate empty initial angles for the circuit. modify later.
             self.initial_packed_amps = []
 
-        if (strategy == 'UCCSD') and (method != 'linalg'):  # UCCSD circuit strategy preparations
-            self.ref_state = ref_state_preparation_circuit(molecule, ref_type='HF', cq=self.custom_qubits)
+        if (strategy == 'UCCSD') and (method != 'linalg'):
+            # UCCSD circuit strategy preparations
+            self.ref_state = ref_state_preparation_circuit(
+                    molecule,
+                    ref_type='HF',
+                    cq=self.custom_qubits)
 
             if self.parametric_way:
-                # in the parametric_way, the circuit is built with free parameters
-                self.ansatz = uccsd_ansatz_circuit_parametric(self.molecule.n_orbitals, self.molecule.n_electrons,
-                                                              cq=self.custom_qubits)
+                # in the parametric_way,
+                # the circuit is built with free parameters
+                self.ansatz = uccsd_ansatz_circuit_parametric(
+                        self.molecule.n_orbitals,
+                        self.molecule.n_electrons,
+                        cq=self.custom_qubits)
             else:
-                # in the non-parametric_way, the circuit has hard-coded angles for the gates.
-                self.ansatz = uccsd_ansatz_circuit(self.initial_packed_amps, self.molecule.n_orbitals,
-                                                   self.molecule.n_electrons, cq=self.custom_qubits)
+                # in the non-parametric_way,
+                # the circuit has hard-coded angles for the gates.
+                self.ansatz = uccsd_ansatz_circuit(
+                        self.initial_packed_amps,
+                        self.molecule.n_orbitals,
+                        self.molecule.n_electrons,
+                        cq=self.custom_qubits)
         elif strategy == 'HF':
-            self.ref_state = ref_state_preparation_circuit(self.molecule, ref_type='HF', cq=self.custom_qubits)
+            self.ref_state = ref_state_preparation_circuit(
+                    self.molecule,
+                    ref_type='HF',
+                    cq=self.custom_qubits)
             self.ansatz = Program()
         elif strategy == 'custom_program':
             self.parametric_way = True
@@ -287,41 +312,56 @@ class VQEexperiment:
         # prepare tomography experiment if necessary
         if self.tomography:
             if self.method == 'linalg':
-                raise NotImplementedError('Tomography is not yet implemented for the linalg method.')
+                raise NotImplementedError('Tomography is not'
+                        ' yet implemented for the linalg method.')
             self.compile_tomo_expts()
         else:
-            # avoid having to re-calculate the PauliSum object each time, store it.
+            # avoid having to re-calculate the PauliSum object each time,
+            # store it.
             self.pauli_sum = PauliSum(self.pauli_list)
 
         # perform miscellaneous method-specific preparations
         if self.method == 'QC':
             if qc is None:
-                raise ValueError('Method is QC, please supply a valid QuantumComputer() object to the qc variable.')
+                raise ValueError('Method is QC, please supply a valid '
+                        'QuantumComputer() object to the qc variable.')
         elif self.method == 'WFS':
             if (self.qc is not None) or (self.custom_qubits is not None):
-                raise ValueError('The WFS method is not intended to be used with a custom qubit lattice or QuantumComputer object.')
+                raise ValueError('The WFS method is not intended to be used'
+                        ' with a custom qubit lattice'
+                        ' or QuantumComputer object.')
         elif self.method == 'Numpy':
             if self.parametric_way:
                 raise ValueError('NumpyWavefunctionSimulator() backend'
                         ' does not yet support parametric programs.')
             if (self.qc is not None) or (self.custom_qubits is not None):
-                raise ValueError('NumpyWavefunctionSimulator() backend is not intended to be used with a '
-                                 'QuantumComputer() object or custom lattice. Consider using PyQVM instead')
+                raise ValueError('NumpyWavefunctionSimulator() backend is'
+                        ' not intended to be used with a '
+                        'QuantumComputer() object or custom lattice. '
+                        'Consider using PyQVM instead')
         elif self.method == 'linalg':
             if molecule is not None:
                 # sparse initial state vector from the MolecularData() object
-                self.initial_psi = jw_hartree_fock_state(self.molecule.n_electrons, 2*self.molecule.n_orbitals)
+                self.initial_psi = jw_hartree_fock_state(
+                        self.molecule.n_electrons,
+                        2*self.molecule.n_orbitals)
                 # sparse operator from the MolecularData() object
-                self.hamiltonian_matrix = get_sparse_operator(self.H, n_qubits=self.n_qubits)
+                self.hamiltonian_matrix = get_sparse_operator(
+                        self.H,
+                        n_qubits=self.n_qubits)
             else:
-                self.hamiltonian_matrix = get_sparse_operator(pyquilpauli_to_qubitop(PauliSum(self.pauli_list)))
+                self.hamiltonian_matrix = get_sparse_operator(
+                        pyquilpauli_to_qubitop(PauliSum(self.pauli_list)))
                 self.initial_psi = None
-                print('Please supply VQE initial state with method VQEexperiment().set_initial_state()')
+                print('Please supply VQE initial state with method'
+                        ' VQEexperiment().set_initial_state()')
         else:
-            raise ValueError('unknown method: please choose from method = {linalg, WFS, tomography} for direct linear '
-                             'algebra, pyquil WavefunctionSimulator, or doing Tomography, respectively')
+            raise ValueError('unknown method: please choose from method ='
+                    ' {linalg, WFS, tomography} for direct linear '
+                    'algebra, pyquil WavefunctionSimulator, '
+                    'or doing Tomography, respectively')
 
-    def compile_tomo_expts(self):
+    def compile_tomo_expts(self, pauli_list=None):
         """
         This method compiles the tomography experiment circuits
         and prepares them for simulation.
@@ -333,14 +373,18 @@ class VQEexperiment:
         # use Forest's sorting algo from the Tomography suite
         # to group Pauli measurements together
         experiments = []
-        for term in self.pauli_list:
+        if pauli_list is None:
+            pauli_list = self.pauli_list
+        for term in pauli_list:
             # if the Pauli term is an identity operator,
             # add the term's coefficient directly to the VQE class' offset
             if len(term.operations_as_set()) == 0:
                 self.offset += term.coefficient.real
             else:
                 # initial state and term pair.
-                experiments.append(ExperimentSetting(TensorProductState(), term))
+                experiments.append(ExperimentSetting(
+                        TensorProductState(),
+                        term))
 
         suite = Experiment(experiments, program=Program())
 
@@ -373,10 +417,14 @@ class VQEexperiment:
 
     def objective_function(self, amps=None):
         """
-        This function returns the Hamiltonian expectation value over the final circuit output state. If argument
-        packed_amps is given, the circuit will run with those parameters. Otherwise, the initial angles will be used.
+        This function returns the Hamiltonian expectation value
+        over the final circuit output state.
+        If argument packed_amps is given,
+        the circuit will run with those parameters.
+        Otherwise, the initial angles will be used.
 
-        :param [list(), numpy.ndarray] amps: list of circuit angles to run the objective function over.
+        :param [list(), numpy.ndarray] amps: list of circuit angles
+                to run the objective function over.
 
         :return: energy estimate
         :rtype: float
@@ -392,57 +440,92 @@ class VQEexperiment:
         elif isinstance(amps, list):
             packed_amps = amps[:]
         else:
-            raise TypeError('Please supply the circuit parameters as a list or np.ndarray')
+            raise TypeError('Please supply the circuit parameters'
+                    ' as a list or np.ndarray')
 
+        self.term_es = {}
         if self.tomography:
-            if (not self.parametric_way) and (self.strategy == 'UCCSD'):  # modify hard-coded type ansatz circuit based
+            if (not self.parametric_way) and (self.strategy == 'UCCSD'):
+                # modify hard-coded type ansatz circuit based
                 # on packed_amps angles
-                self.ansatz = uccsd_ansatz_circuit(packed_amps, self.molecule.n_orbitals,
-                                                   self.molecule.n_electrons, cq=self.custom_qubits)
+                self.ansatz = uccsd_ansatz_circuit(
+                        packed_amps,
+                        self.molecule.n_orbitals,
+                        self.molecule.n_electrons,
+                        cq=self.custom_qubits)
                 self.compile_tomo_expts()
             for experiment in self.experiment_list:
-                E += experiment.run_experiment(self.qc, packed_amps)  # Run tomography experiments
-            E += self.offset  # add the offset energy to avoid doing superfluous tomography over the identity operator.
+                E1, term_es = experiment.run_experiment(self.qc, packed_amps)
+                self.term_es.update(term_es)
+                E += E1
+                # Run tomography experiments
+            E += self.offset
+            # add the offset energy to avoid doing superfluous
+            # tomography over the identity operator.
         elif self.method == 'WFS':
-            # In the direct WFS method without tomography, direct access to wavefunction is allowed and expectation
+            # In the direct WFS method without tomography,
+            # direct access to wavefunction is allowed and expectation
             # value is exact each run.
             if self.parametric_way:
-                E += WavefunctionSimulator().expectation(self.ref_state+self.ansatz,
-                                                         self.pauli_sum,
-                                                         {'theta': packed_amps}).real  # attach parametric angles here
-            else:
-                if packed_amps is not None:  # modify hard-coded type ansatz circuit based on packed_amps angles
-                    self.ansatz = uccsd_ansatz_circuit(packed_amps, self.molecule.n_orbitals,
-                                                       self.molecule.n_electrons, cq=self.custom_qubits)
-                E += WavefunctionSimulator().expectation(self.ref_state+self.ansatz, self.pauli_sum).real
-        elif self.method == 'Numpy':
-            if self.parametric_way:
-                raise ValueError('NumpyWavefunctionSimulator() backend does not yet support parametric programs.')
+                E += WavefunctionSimulator().expectation(
+                        self.ref_state+self.ansatz,
+                        self.pauli_sum,
+                        {'theta': packed_amps}).real
+                # attach parametric angles here
             else:
                 if packed_amps is not None:
-                    self.ansatz = uccsd_ansatz_circuit(packed_amps,
-                                                       self.molecule.n_orbitals,
-                                                       self.molecule.n_electrons,
-                                                       cq=self.custom_qubits)
+                    # modify hard-coded type ansatz circuit
+                    # based on packed_amps angles
+                    self.ansatz = uccsd_ansatz_circuit(
+                            packed_amps,
+                            self.molecule.n_orbitals,
+                            self.molecule.n_electrons,
+                            cq=self.custom_qubits)
+                E += WavefunctionSimulator().expectation(
+                        self.ref_state+self.ansatz,
+                        self.pauli_sum).real
+        elif self.method == 'Numpy':
+            if self.parametric_way:
+                raise ValueError('NumpyWavefunctionSimulator() backend'
+                        ' does not yet support parametric programs.')
+            else:
+                if packed_amps is not None:
+                    self.ansatz = uccsd_ansatz_circuit(
+                            packed_amps,
+                            self.molecule.n_orbitals,
+                            self.molecule.n_electrons,
+                            cq=self.custom_qubits)
                 E += NumpyWavefunctionSimulator(n_qubits=self.n_qubits).\
-                    do_program(self.ref_state+self.ansatz).expectation(self.pauli_sum).real
+                    do_program(self.ref_state+self.ansatz).\
+                    expectation(self.pauli_sum).real
         elif self.method == 'linalg':
-            # check if molecule has data sufficient to construct UCCSD ansatz and propagate starting from HF state
+            # check if molecule has data sufficient to construct UCCSD ansatz
+            # and propagate starting from HF state
             if self.molecule is not None:
-
-                propagator = normal_ordered(uccsd_singlet_generator(packed_amps, 2 * self.molecule.n_orbitals,
-                                                                    self.molecule.n_electrons,
-                                                                    anti_hermitian=True))
-                qubit_propagator_matrix = get_sparse_operator(propagator, n_qubits=self.n_qubits)
-                uccsd_state = expm_multiply(qubit_propagator_matrix, self.initial_psi)
-                expected_uccsd_energy = expectation(self.hamiltonian_matrix, uccsd_state).real
+                propagator = normal_ordered(
+                        uccsd_singlet_generator(
+                                packed_amps,
+                                2 * self.molecule.n_orbitals,
+                                self.molecule.n_electrons,
+                                anti_hermitian=True))
+                qubit_propagator_matrix = get_sparse_operator(
+                        propagator,
+                        n_qubits=self.n_qubits)
+                uccsd_state = expm_multiply(qubit_propagator_matrix,
+                        self.initial_psi)
+                expected_uccsd_energy = expectation(
+                        self.hamiltonian_matrix, uccsd_state).real
                 E += expected_uccsd_energy
-            else:   # apparently no molecule was supplied; attempt to just propagate the ansatz from user-specified
-                # initial state, using a circuit unitary if supplied by the user, otherwise the initial state itself,
+            else:
+                # apparently no molecule was supplied;
+                # attempt to just propagate the ansatz from user-specified
+                # initial state, using a circuit unitary
+                # if supplied by the user, otherwise the initial state itself,
                 # and then estimate over <H>
                 if self.initial_psi is None:
-                    raise ValueError('Warning: no initial wavefunction set. Please set using '
-                                     'VQEexperiment().set_initial_state()')
+                    raise ValueError('Warning: no initial wavefunction set.'
+                            ' Please set using '
+                            'VQEexperiment().set_initial_state()')
                 # attempt to propagate with a circuit unitary
                 if self.circuit_unitary is None:
                     psi = self.initial_psi
@@ -450,15 +533,18 @@ class VQEexperiment:
                     psi = expm_multiply(self.circuit_unitary, self.initial_psi)
                 E += expectation(self.hamiltonian_matrix, psi).real
         else:
-            raise ValueError('Impossible method: please choose from method = {WFS, Numpy, linalg} if Tomography is set'
-                             ' to False, or choose from method = {QC, WFS, Numpy, linalg} if tomography is set to True')
+            raise ValueError('Impossible method: please choose from method'
+                    ' = {WFS, Numpy, linalg} if Tomography is set'
+                    ' to False, or choose from method = '
+                    '{QC, WFS, Numpy, linalg} if tomography is set to True')
 
         if self.verbose:
             self.it_num += 1
             print('black-box function call #' + str(self.it_num))
             print('Energy estimate is now:  ' + str(E))
             print('at angles:               ', packed_amps)
-            print('and this took ' + '{0:.3f}'.format(time.time()-t) + ' seconds to evaluate')
+            print('and this took ' + '{0:.3f}'.format(time.time()-t) + \
+                    ' seconds to evaluate')
 
         self.history.append(E)
 
@@ -552,16 +638,19 @@ class VQEexperiment:
 
     def get_qubit_req(self):
         """
-        This method computes the number of qubits required to represent the desired Hamiltonian:
+        This method computes the number of qubits required
+        to represent the desired Hamiltonian:
         * assumes all Pauli term indices up to the largest one are in use.
         * assumes pauli_list has been loaded properly.
 
-        :return: number of qubits required in the circuit, as set by the Hamiltonian terms' indices.
+        :return: number of qubits required in the circuit,
+                as set by the Hamiltonian terms' indices.
         :rtype: int
         """
 
         if self.pauli_list is None:
-            raise ValueError('Error: pauli_list not loaded properly. re-initialize VQE object')
+            raise ValueError('Error: pauli_list not loaded properly.'
+                    ' re-initialize VQE object')
 
         max_i = 0
         for term in self.pauli_list:
@@ -580,12 +669,14 @@ class VQEexperiment:
         if self.res is not None:
             return self.res
         else:
-            raise Exception('No VQE results yet. Please run VQE using VQEexperiment.start_vqe()')
+            raise Exception('No VQE results yet. Please run VQE'
+                    ' using VQEexperiment.start_vqe()')
 
     def get_history(self):
         """
-        Get historical values of objective_function from the classical optimization algorithm. Note: resets at every
-        start_vqe().
+        Get historical values of objective_function
+        from the classical optimization algorithm.
+        Note: resets at every start_vqe().
 
         :return: Historical energy values from the optimizer
         :rtype: list()
@@ -596,7 +687,8 @@ class VQEexperiment:
         """
         Set the maximum iteration number for the classical optimizer
 
-        :param int maxiter: maximum iteration number for the classical optimizer
+        :param int maxiter: maximum iteration number
+                for the classical optimizer
 
         """
         self.maxiter = maxiter
@@ -612,11 +704,13 @@ class VQEexperiment:
     def set_custom_ansatz(self, prog: Program = Program()):
         """
 
-        :param Program() prog: set a custom ansatz circuit as a program. All variational angles must be parametric !
+        :param Program() prog: set a custom ansatz circuit as a program.
+                All variational angles must be parametric !
 
         """
         if self.method == 'linalg':
-            raise TypeError('method is linalg. Please set custom unitary instead of custom circuit.')
+            raise TypeError('method is linalg. Please set custom unitary'
+                    ' instead of custom circuit.')
         self.ansatz = Program(prog)
         if self.tomography:
             self.compile_tomo_expts()
@@ -624,12 +718,14 @@ class VQEexperiment:
     def set_custom_ref_preparation(self, prog: Program = Program()):
         """
 
-        :param Program() prog: set a custom reference state preparation circuit as a program. All variational angles
-            must be parametric.
+        :param Program() prog: set a custom reference state preparation
+                circuit as a program. All variational angles
+                must be parametric.
 
         """
         if self.method == 'linalg':
-            raise TypeError('method is linalg. Please set custom unitary instead of custom circuit.')
+            raise TypeError('method is linalg. Please set custom unitary'
+                    ' instead of custom circuit.')
         self.ref_state = Program(prog)
         if self.tomography:
             self.compile_tomo_expts()
@@ -645,7 +741,8 @@ class VQEexperiment:
 
     def set_tomo_shots(self, shotN):
         """
-        Set the number of shots for the tomography experiment. Warning: requires recompilation of the circuits.
+        Set the number of shots for the tomography experiment.
+        Warning: requires recompilation of the circuits.
 
         :param int shotN: number of tomography repetitions.
 
@@ -654,24 +751,30 @@ class VQEexperiment:
             self.shotN = shotN
             self.compile_tomo_expts()
         else:
-            print("WARNING: the VQE is not set to tomography mode, changing shot number won't affect anything!")
+            print("WARNING: the VQE is not set to tomography mode, "
+                    "changing shot number won't affect anything!")
 
     def set_initial_state(self, psi):
         """
-        Manually set the complex-valued initial state for the qubits (). Only makes sense for the linalg method
+        Manually set the complex-valued initial state for the qubits ().
+        Only makes sense for the linalg method
 
-        :param numpy.ndarray psi: np.ndarray or scipy.sparse array: the complex-valued initial state of the qubits
+        :param numpy.ndarray psi: np.ndarray or scipy.sparse array:
+                the complex-valued initial state of the qubits
 
         """
         if self.method != 'linalg':
-            print('warning: method is not linalg, so setting a numerical inital state does nothing.')
+            print('warning: method is not linalg, so setting a numerical'
+                    ' inital state does nothing.')
         self.initial_psi = psi
 
     def get_circuit(self):
         """
-        This method returns the reference state preparation circuit followed by the ansatz circuit.
+        This method returns the reference state preparation circuit
+        followed by the ansatz circuit.
 
-        :return: return the PyQuil program which defines the circuit. Excludes tomography rotations.
+        :return: return the PyQuil program which defines the circuit.
+                Excludes tomography rotations.
         :rtype: Program
         """
         return Program(self.ref_state+self.ansatz)
@@ -680,7 +783,8 @@ class VQEexperiment:
         """
         Sets the circuit unitary for use in the 'linalg' method.
 
-        :param numpy.ndarray unitary: np.ndarray of size [2^N x 2^N] where N is the number of qubits
+        :param numpy.ndarray unitary: np.ndarray of size [2^N x 2^N]
+                where N is the number of qubits
 
         """
         if sp.sparse.issparse(unitary):
@@ -688,10 +792,12 @@ class VQEexperiment:
         elif isinstance(unitary, np.ndarray):
             self.circuit_unitary = sp.sparse.csc_matrix(unitary)
         else:
-            raise ValueError('Please supply either a sparse matrix or numpy ndarray')
+            raise ValueError('Please supply either a sparse matrix'
+                    ' or numpy ndarray')
 
     def save_program(self, filename):
-        """this saves the preparation circuit as a quil program which can be parsed with pyquil.parser.parse
+        """this saves the preparation circuit as a quil program
+        which can be parsed with pyquil.parser.parse
 
         :param str filename: saves the quil program to this filename.
 
@@ -799,10 +905,17 @@ class GroupedPauliSetting:
         prog += ansatz
 
         self.coefficients = []
+        self.term_ids = []
         already_done = []
         for pauli in list_gsuit_paulis:
             # let's store the pauli term coefficients for later use
             self.coefficients.append(pauli.coefficient)
+            # if cq is not None:
+            # _id = "".join("{}{}".format(p, cq[q]) for q, p  \
+            #             in pauli._ops.items())
+            # else:
+            #     _id = pauli.id(sort_ops=False)
+            self.term_ids.append(pauli.id(sort_ops=False))
 
             # also, we perform the necessary rotations
             # going from X or Y to Z basis
@@ -850,51 +963,65 @@ class GroupedPauliSetting:
 
     def run_experiment(self, qc: Union[QuantumComputer, None], angles=None):
         """
-        method to run the Tomography experiment for this instance's setting, repeating for shotN shots.
+        method to run the Tomography experiment for this instance's setting,
+        repeating for shotN shots.
 
-        :param [QuantumComputer, None] qc: quantum computer object to run the experiment on, or None in case of WFS/Numpy methods
+        :param [QuantumComputer, None] qc: quantum computer object
+                to run the experiment on, or None in case of WFS/Numpy methods
         :param list() angles: circuit parameters to feed
 
-        :return: returns sum of all commuting pauli terms estimations for this experiment
+        :return: returns sum of all commuting pauli terms estimations
+                for this experiment
         :rtype: float
         """
 
         if self.method == 'WFS':
             qubits = list(range(self.n_qubits))
 
-            if len(self.pure_pyquil_program) == 0:  # makes sure there is always a circuit to run
+            if len(self.pure_pyquil_program) == 0:
+                # makes sure there is always a circuit to run
                 self.pure_pyquil_program += I(qubits[0])
 
             if self.parametric_way:
-                bitstrings = WavefunctionSimulator().run_and_measure(self.pure_pyquil_program, trials=self.shotN,
-                                                                     qubits=qubits,
-                                                                     memory_map={'theta': angles})
+                bitstrings = WavefunctionSimulator().run_and_measure(
+                        self.pure_pyquil_program, trials=self.shotN,
+                        qubits=qubits,
+                        memory_map={'theta': angles})
             else:
-                bitstrings = WavefunctionSimulator().run_and_measure(self.pure_pyquil_program, qubits=qubits,
-                                                                     trials=self.shotN)
+                bitstrings = WavefunctionSimulator().run_and_measure(
+                        self.pure_pyquil_program,
+                        qubits=qubits,
+                        trials=self.shotN)
         elif self.method == 'Numpy':
             prog = self.pure_pyquil_program
             if self.parametric_way:
-                prog = augment_program_with_memory_values(self.pure_pyquil_program,
-                                                          memory_map={'theta': angles})
+                prog = augment_program_with_memory_values(
+                        self.pure_pyquil_program,
+                        memory_map={'theta': angles})
             npwfs = PyQVM(n_qubits=self.n_qubits).wf_simulator.do_program(prog)
             bitstrings = npwfs.sample_bitstrings(n_samples=self.shotN)
         elif qc.name[-4:] == '-qvm':
-            # run the pre-compiled QUIL executable and use parametric compilation at run-time for a performance boost
+            # run the pre-compiled QUIL executable and use parametric
+            # compilation at run-time for a performance boost
             if self.parametric_way:
                 bitstrings = qc.run(self.pyquil_executable,
                         memory_map={'theta': angles})
-            else:  # when no angles are supplied it is assumed that the pyquil binary already has them: no memory_map
+            else:
+                # when no angles are supplied it is assumed
+                # that the pyquil binary already has them: no memory_map
                 bitstrings = qc.run(self.pyquil_executable)
         elif qc.name[-4:] == 'yqvm':
-            # the QVM is actually a numpy wavefunction simulator, so let's run the pyquil (not-compiled) program instead
+            # the QVM is actually a numpy wavefunction simulator,
+            # so let's run the pyquil (not-compiled) program instead
             if not self.parametric_way:
                 bitstrings = qc.run(self.pyqvm_program)
             else:
                 # TODO: parametric gates on PyQVM
-                raise NotImplementedError('Parametric gates do not work properly on PyQVM yet')
+                raise NotImplementedError('Parametric gates do not work'
+                        ' properly on PyQVM yet')
                 # first, we populate the parametric gates correctly:
-                # prog = augment_program_with_memory_values(self.pyqvm_program, memory_map={'theta': angles})
+                # prog = augment_program_with_memory_values(
+                #         self.pyqvm_program, memory_map={'theta': angles})
                 # bitstrings = qc.run(prog)
         else:  # assumes the only other possibility is an actual QPU
             # TODO: actually this should also work if a real QPU is supplied!
@@ -910,17 +1037,24 @@ class GroupedPauliSetting:
 
         # t = time.time() # dev only
         # start data processing
-        # this matrix computes the pauli string parity, and stores that for each bitstring
+        # this matrix computes the pauli string parity,
+        # and stores that for each bitstring
         is_odd = np.mod(bitstrings.dot(self.parity_matrix), 2)
 
-        # if the parity is odd, the bitstring gives a -1 eigenvalue, and +1 vice versa.
-        # sum over all bitstrings, average over shotN shots, and weigh each pauli string by its coefficient
-        E = (1 - 2 * np.sum(is_odd, axis=0) / self.shotN).dot(np.array(self.coefficients)).real
+        # if the parity is odd, the bitstring gives a -1 eigenvalue,
+        # and +1 vice versa.
+        # sum over all bitstrings, average over shotN shots,
+        # and weigh each pauli string by its coefficient
+        e_array = 1 - 2*np.sum(is_odd, axis=0)/self.shotN
+        E = e_array.dot(np.array(self.coefficients)).real
+        term_es = {}
+        for _id, _e in zip(self.term_ids, e_array) :
+            term_es[_id] = _e
         # if self.verbose:  # dev only
-        #    print('evaluating bitstrings took ' + str(time.time() - t) + ' seconds')
+        #    print('evaluating bitstrings took '+str(time.time()-t)+' seconds')
         # end data processing
 
-        return E
+        return E, term_es
 
     @staticmethod
     def construct_parity_matrix(pauli_list, n_qubits):

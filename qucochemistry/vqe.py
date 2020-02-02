@@ -39,7 +39,7 @@ class VQEexperiment:
             method: str = 'Numpy',
             strategy: str = 'UCCSD',
             optimizer: str = 'BFGS',
-            maxiter: int = 100000000,
+            maxiter: int = 100000,
             shotN: int = 10000,
             active_reset: bool = True,
             tomography: bool = False,
@@ -552,39 +552,50 @@ class VQEexperiment:
 
     def start_vqe(self, theta=None, maxiter: int = 0, options: dict = {}):
         """
-        This method starts the VQE algorithm. User can supply an initial circuit setting, otherwise the stored
-        initial settings are used. the maxiter refers to the scipy optimizer number of iterations
+        This method starts the VQE algorithm.
+        User can supply an initial circuit setting, otherwise the stored
+        initial settings are used.
+        the maxiter refers to the scipy optimizer number of iterations
         (which may well be much less than the number of function calls)
 
-        :param [list(),numpy.ndarray] theta: list of initial angles for the circuit to start the optimizer in.
+        :param [list(),numpy.ndarray] theta: list of initial angles
+                for the circuit to start the optimizer in.
         :param int maxiter: maximum number of iterations.
         :param Dict options: options for the scipy.minimize classical optimizer
 
-        :return: scipy.optimize.minimize result object containing convergence details and final energies. See scipy docs
+        :return: scipy.optimize.minimize result object containing convergence
+                details and final energies. See scipy docs
         :rtype: OptimizeResult
         """
         t0 = time.time()
         if self.strategy == 'HF':
-            raise ValueError('Warning: vqe object set to a static circuit, no variational algorithm possible. '
-                             'Consider running the method objective_function() instead.')
+            raise ValueError('Warning: vqe object set to a static circuit,'
+                    ' no variational algorithm possible. '
+                    'Consider running the method objective_function()'
+                    ' instead.')
 
-        # allows user to initialize the VQE with custom circuit angles. len(angles) must be equal to the size of
+        # allows user to initialize the VQE with custom circuit angles.
+        # len(angles) must be equal to the size of
         # memory register Theta in the parametric program
         if theta is None:
             if self.verbose:
-                print('Setting starting circuit parameters to initial amps: ', self.initial_packed_amps)
+                print('Setting starting circuit parameters to initial amps: ',
+                        self.initial_packed_amps)
             starting_angles = np.array(self.initial_packed_amps)
         elif isinstance(theta, np.ndarray):
             starting_angles = theta
         elif isinstance(theta, list):
             starting_angles = np.array(theta)
         else:
-            raise TypeError('Please supply the circuit parameters as a list or np.ndarray')
+            raise TypeError('Please supply the circuit parameters'
+                    ' as a list or np.ndarray')
 
         if not isinstance(maxiter, int):
-            raise TypeError('Max number of iterations, maxiter, should be a positive integer.')
+            raise TypeError('Max number of iterations, maxiter,'
+                    ' should be a positive integer.')
         elif maxiter < 0:
-            raise ValueError('Max number of iterations, maxiter, should be positive.')
+            raise ValueError('Max number of iterations, maxiter,'
+                    ' should be positive.')
 
         # store historical values of the optimizer
         self.history = []
@@ -595,39 +606,49 @@ class VQEexperiment:
         else:
             max_iter = self.maxiter
 
-        # define a base_options which can be extended with another dictionary supplied in the start_vqe() call.
+        # define a base_options which can be extended with another dictionary
+        # supplied in the start_vqe() call.
         base_options = {'disp': self.verbose, 'maxiter': max_iter}
 
         self.it_num = 0
-        # run the classical optimizer with the quantum circuit evaluation as an objective function.
-        # self.res = minimize(self.objective_function, starting_angles, method=self.optimizer,
+        # run the classical optimizer with the quantum circuit evaluation
+        # as an objective function.
+        # self.res = minimize(self.objective_function, starting_angles,
+        # method=self.optimizer,
         #                     options={**base_options, **options})
-        self.res = minimizer(self.objective_function, starting_angles, method=self.optimizer,
-                             options={**base_options, **options})
+        self.res = minimizer(self.objective_function,
+                starting_angles,
+                method=self.optimizer,
+                options={**base_options, **options})
 
         if self.verbose:
-            print('VQE optimization took ' + '{0:.3f}'.format(time.time()-t0) + ' seconds to evaluate')
+            print('VQE optimization took ' +
+                    '{0:.3f}'.format(time.time()-t0) + ' seconds to evaluate')
         return self.res
 
     def get_exact_gs(self, hamiltonian=None):
         """
         Calculate the exact groundstate energy of the loaded Hamiltonian
 
-        :param PauliSum hamiltonian: (optional) Hamiltonian of which one would like to calculate the GS energy
+        :param PauliSum hamiltonian: (optional) Hamiltonian of which
+                one would like to calculate the GS energy
 
         :return: groundstate energy
         :rtype: float
         """
         if hamiltonian is None:
-            h = get_sparse_operator(pyquilpauli_to_qubitop(PauliSum(self.pauli_list)))
+            h = get_sparse_operator(
+                    pyquilpauli_to_qubitop(PauliSum(self.pauli_list)))
         else:
             if isinstance(hamiltonian, PauliSum):
                 h = get_sparse_operator(pyquilpauli_to_qubitop(hamiltonian))
             else:
-                raise TypeError('please give a PauliSum() object as the Hamiltonian.')
+                raise TypeError('please give a PauliSum()'
+                        ' object as the Hamiltonian.')
 
-        if h.shape[0] > 1024:  # sparse matrix eigenvalue decomposition is less accurate, but is necessary for
-            # larger matrices
+        if h.shape[0] > 1024:
+            # sparse matrix eigenvalue decomposition is less accurate,
+            # but is necessary for larger matrices
             [w, _] = sp.sparse.linalg.eigsh(h, k=1)
         else:
             [w, _] = np.linalg.eigh(h.todense())
@@ -910,11 +931,7 @@ class GroupedPauliSetting:
         for pauli in list_gsuit_paulis:
             # let's store the pauli term coefficients for later use
             self.coefficients.append(pauli.coefficient)
-            # if cq is not None:
-            # _id = "".join("{}{}".format(p, cq[q]) for q, p  \
-            #             in pauli._ops.items())
-            # else:
-            #     _id = pauli.id(sort_ops=False)
+            # save the id for each term
             self.term_ids.append(pauli.id(sort_ops=False))
 
             # also, we perform the necessary rotations

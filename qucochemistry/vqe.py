@@ -231,7 +231,7 @@ class VQEexperiment:
         self.res = None
 
         # list of grouped experiments (only relevant to tomography)
-        self.experiment_list = []
+        self.experiment_list = None
 
         # whether to print debugging data to console
         self.verbose = verbose
@@ -309,12 +309,10 @@ class VQEexperiment:
             self.ref_state = Program()
             self.ansatz = Program()
 
-        # prepare tomography experiment if necessary
         if self.tomography:
             if self.method == 'linalg':
                 raise NotImplementedError('Tomography is not'
                         ' yet implemented for the linalg method.')
-            self.compile_tomo_expts()
         else:
             # avoid having to re-calculate the PauliSum object each time,
             # store it.
@@ -375,6 +373,7 @@ class VQEexperiment:
         experiments = []
         if pauli_list is None:
             pauli_list = self.pauli_list
+
         for term in pauli_list:
             # if the Pauli term is an identity operator,
             # add the term's coefficient directly to the VQE class' offset
@@ -453,6 +452,7 @@ class VQEexperiment:
                         self.molecule.n_orbitals,
                         self.molecule.n_electrons,
                         cq=self.custom_qubits)
+            if self.experiment_list is None or not self.parametric_way:
                 self.compile_tomo_expts()
             for experiment in self.experiment_list:
                 E1, term_es = experiment.run_experiment(self.qc, packed_amps)
@@ -733,8 +733,6 @@ class VQEexperiment:
             raise TypeError('method is linalg. Please set custom unitary'
                     ' instead of custom circuit.')
         self.ansatz = Program(prog)
-        if self.tomography:
-            self.compile_tomo_expts()
 
     def set_custom_ref_preparation(self, prog: Program = Program()):
         """
@@ -748,8 +746,6 @@ class VQEexperiment:
             raise TypeError('method is linalg. Please set custom unitary'
                     ' instead of custom circuit.')
         self.ref_state = Program(prog)
-        if self.tomography:
-            self.compile_tomo_expts()
 
     def set_initial_angles(self, angles: List):
         """
@@ -770,7 +766,6 @@ class VQEexperiment:
         """
         if self.tomography:
             self.shotN = shotN
-            self.compile_tomo_expts()
         else:
             print("WARNING: the VQE is not set to tomography mode, "
                     "changing shot number won't affect anything!")

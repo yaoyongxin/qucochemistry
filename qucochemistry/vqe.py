@@ -6,8 +6,11 @@ from pyquil.pyqvm import PyQVM
 from pyquil.quil import Program, percolate_declares
 from pyquil.gates import I, RESET, MEASURE
 from pyquil.paulis import PauliSum, PauliTerm, ID
-from pyquil.operator_estimation import Experiment, \
-        group_experiments, ExperimentSetting, TensorProductState
+from pyquil.operator_estimation import group_experiments,  \
+        TensorProductState, \
+        measure_observables
+from pyquil.experiment import Experiment, ExperimentSetting, \
+        correct_experiment_result
 
 from openfermion.hamiltonians import MolecularData
 from openfermion.utils import uccsd_singlet_generator, normal_ordered, \
@@ -370,7 +373,7 @@ class VQEexperiment:
         self.offset = 0
         # use Forest's sorting algo from the Tomography suite
         # to group Pauli measurements together
-        experiments = []
+        settings = []
         if pauli_list is None:
             pauli_list = self.pauli_list
 
@@ -381,38 +384,68 @@ class VQEexperiment:
                 self.offset += term.coefficient.real
             else:
                 # initial state and term pair.
-                experiments.append(ExperimentSetting(
+                settings.append(ExperimentSetting(
                         TensorProductState(),
                         term))
-
-        suite = Experiment(experiments, program=Program())
-
-        gsuite = group_experiments(suite)
-
-        grouped_list = []
-        for setting in gsuite:
+        # group_experiments cannot be directly run
+        # because there may be experiment with multiple settings.
+        # so here we just use group_experiments to sort out the settings,
+        # then reset the experiments with additional measurements.
+        experiments = Experiment(settings, Program())
+        suite = group_experiments(experiments)
+        # we just need the grouped settings.
+        grouped_pauil_terms = []
+        for setting in suite:
             group = []
-            for term in setting:
-                group.append(term.out_operator)
-            grouped_list.append(group)
+            for i, term in enumerate(setting):
+                pauil_term = term.out_operator
+                # Coefficients to be multiplied.
+                pauil_term.coefficient = complex(1.)
+                if i == 0:
+                    group.append(pauil_term)
+                elif len(pauil_term) > len(group[0]):
+                    group.insert(0, pauil_term)
+                else:
+                    group.append(pauil_term)
+            # make sure the longest pauil_term contains all the small
+            # pauil_terms. Otherwise, we prepare a bigger one.
+            bigger_pauli = group[0]
+            if len(group) > 1:
+                for term in group[1:]:
+                    for iq, op in term.operations_as_set():
+                        if op != group[0][iq]:
+                            assert(group[0][iq] == "I"), \
+                                    (f"{term} and {group[0]}"
+                                    " not compatible!")
+                            if bigger_pauli is group[0]:
+                                bigger_pauli == group[0].copy()
+                            bigger_pauli *= PauliTerm(op, iq)
+                if bigger_pauli is not group[0]:
+                    print(f"new pauli_term generated: {bigger_pauli}")
+                    group.insert(0, bigger_pauli)
+            grouped_pauil_terms.append(group)
+        # group settings with additional_expectations.
+        grouped_settings = []
+        for pauil_terms in grouped_pauil_terms:
+            additional = None
+            if len(pauil_terms) > 1:
+                additional = []
+                for term in pauil_terms[1:]:
+                    additional.append(term.get_qubits())
+            grouped_settings.append(
+                    ExperimentSetting(TensorProductState(),
+                            pauil_terms[0],
+                            additional_expectations=additional))
 
-        if self.verbose:
-            print('Number of tomography experiments: ', len(grouped_list))
-
-        self.experiment_list = []
-        for group in grouped_list:
-            self.experiment_list.append(
-                    GroupedPauliSetting(group,
-                            qc=self.qc,
-                            ref_state=self.ref_state,
-                            ansatz=self.ansatz,
-                            shotN=self.shotN,
-                            parametric_way=self.parametric_way,
-                            n_qubits=self.n_qubits,
-                            method=self.method,
-                            verbose=self.verbose,
-                            cq=self.custom_qubits,
-                            ))
+        # get the uccsd program
+        prog = Program()
+        prog += RESET()
+        prog += self.ref_state + self.ansatz
+        prog.wrap_in_numshots_loop(shots=self.shotN)
+        self.experiment_list = Experiment(grouped_settings, prog)
+        print('Number of tomography experiments: ',
+                len(self.experiment_list))
+        self.calibrations = self.qc.calibrate(self.experiment_list)
 
     def objective_function(self, amps=None):
         """
@@ -454,14 +487,25 @@ class VQEexperiment:
                         cq=self.custom_qubits)
             if self.experiment_list is None or not self.parametric_way:
                 self.compile_tomo_expts()
-            for experiment in self.experiment_list:
-                E1, term_es = experiment.run_experiment(self.qc, packed_amps)
-                self.term_es.update(term_es)
-                E += E1
-                # Run tomography experiments
+
+
+            results = self.qc.experiment(self.experiment_list,
+                    memory_map={'theta': packed_amps})
+            # calibration
+            for r, c in zip(results, self.calibrations):
+                res = correct_experiment_result(r, c)
+                key = res.setting.out_operator.operations_as_set()
+                self.term_es[key] = res.calibration_expectation
+                if res.additional_results:
+                    for a in res.additional_results:
+                        key = a.setting.out_operator.operations_as_set()
+                        self.term_es[key] = a.calibration_expectation
+            for term in pauli_list:
+                key = term.operations_as_set()
+                if len(key) > 0:
+                     E += term.coefficient*term_es[key]
             E += self.offset
-            # add the offset energy to avoid doing superfluous
-            # tomography over the identity operator.
+
         elif self.method == 'WFS':
             # In the direct WFS method without tomography,
             # direct access to wavefunction is allowed and expectation

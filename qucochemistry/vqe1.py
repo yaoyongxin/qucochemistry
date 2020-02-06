@@ -252,7 +252,7 @@ class VQEexperiment:
         # this serves to avoid doing simulation for the identity
         # operator, which always yields unity times the coefficient
         # due to wavefunction normalization.
-        self.set_offset()
+        self.offset = 0
 
         # set empty circuit unitary.
         # This is used for the direct linear algebraic methods.
@@ -314,6 +314,7 @@ class VQEexperiment:
             if self.method == 'linalg':
                 raise NotImplementedError('Tomography is not'
                         ' yet implemented for the linalg method.')
+            self.compile_tomo_expts()
         else:
             # avoid having to re-calculate the PauliSum object each time,
             # store it.
@@ -360,14 +361,6 @@ class VQEexperiment:
                     'algebra, pyquil WavefunctionSimulator, '
                     'or doing Tomography, respectively')
 
-    def set_offset(self):
-         self.offset = 0
-         for term in self.pauli_list:
-             # if the Pauli term is an identity operator,
-             # add the term's coefficient directly to the VQE class' offset
-             if len(term.operations_as_set()) == 0:
-                 self.offset += term.coefficient.real
-
     def compile_tomo_expts(self, pauli_list=None):
         """
         This method compiles the tomography experiment circuits
@@ -376,6 +369,7 @@ class VQEexperiment:
         re-compiling the tomography experiments
         is required to affect the outcome.
         """
+        self.offset = 0
         # use Forest's sorting algo from the Tomography suite
         # to group Pauli measurements together
         experiments = []
@@ -384,13 +378,18 @@ class VQEexperiment:
         for term in pauli_list:
             # if the Pauli term is an identity operator,
             # add the term's coefficient directly to the VQE class' offset
-            if len(term.operations_as_set()) > 0:
+            if len(term.operations_as_set()) == 0:
+                self.offset += term.coefficient.real
+            else:
                 # initial state and term pair.
                 experiments.append(ExperimentSetting(
                         TensorProductState(),
                         term))
+
         suite = Experiment(experiments, program=Program())
+
         gsuite = group_experiments(suite)
+
         grouped_list = []
         for setting in gsuite:
             group = []
@@ -456,13 +455,10 @@ class VQEexperiment:
                         cq=self.custom_qubits)
                 self.compile_tomo_expts()
             for experiment in self.experiment_list:
-                term_es = experiment.run_experiment(self.qc, packed_amps)
+                E1, term_es = experiment.run_experiment(self.qc, packed_amps)
                 self.term_es.update(term_es)
-
-            for term in self.pauli_list:
-                key = term.operations_as_set()
-                if len(key) > 0:
-                    E += term.coefficient*self.term_es[key]
+                E += E1
+                # Run tomography experiments
             E += self.offset
             # add the offset energy to avoid doing superfluous
             # tomography over the identity operator.
@@ -542,8 +538,6 @@ class VQEexperiment:
                     ' to False, or choose from method = '
                     '{QC, WFS, Numpy, linalg} if tomography is set to True')
 
-        # energy should be real
-        E = E.real
         if self.verbose:
             self.it_num += 1
             print('black-box function call #' + str(self.it_num))
@@ -551,6 +545,7 @@ class VQEexperiment:
             print('at angles:               ', packed_amps)
             print('and this took ' + '{0:.3f}'.format(time.time()-t) + \
                     ' seconds to evaluate')
+
         self.history.append(E)
 
         return E
@@ -738,6 +733,8 @@ class VQEexperiment:
             raise TypeError('method is linalg. Please set custom unitary'
                     ' instead of custom circuit.')
         self.ansatz = Program(prog)
+        if self.tomography:
+            self.compile_tomo_expts()
 
     def set_custom_ref_preparation(self, prog: Program = Program()):
         """
@@ -751,6 +748,8 @@ class VQEexperiment:
             raise TypeError('method is linalg. Please set custom unitary'
                     ' instead of custom circuit.')
         self.ref_state = Program(prog)
+        if self.tomography:
+            self.compile_tomo_expts()
 
     def set_initial_angles(self, angles: List):
         """
@@ -771,6 +770,7 @@ class VQEexperiment:
         """
         if self.tomography:
             self.shotN = shotN
+            self.compile_tomo_expts()
         else:
             print("WARNING: the VQE is not set to tomography mode, "
                     "changing shot number won't affect anything!")
@@ -842,9 +842,7 @@ class GroupedPauliSetting:
             active_reset: bool = True,
             cq=None,
             method='QC',
-            verbose: bool = False,
-            calibration: bool = True,
-            ):
+            verbose: bool = False):
         """
         A tomography experiment class for use in VQE.
         In a real experiment, one only has access to measurements
@@ -897,7 +895,6 @@ class GroupedPauliSetting:
         self.verbose = verbose
         self.n_qubits = n_qubits
         self.cq = cq
-        self.calibration = calibration
 
         if qc is not None:
             if qc.name[-4:] == 'yqvm' and self.cq is not None:
@@ -928,16 +925,19 @@ class GroupedPauliSetting:
         # from a reference state (f.ex. UCCSD or swap network UCCSD)
         prog += ansatz
 
-        self.term_keys = []
+        self.coefficients = []
+        self.term_ids = []
         already_done = []
         for pauli in list_gsuit_paulis:
+            # let's store the pauli term coefficients for later use
+            self.coefficients.append(pauli.coefficient)
             # save the id for each term
-            self.term_keys.append(pauli.operations_as_set())
+            self.term_ids.append(pauli.id(sort_ops=False))
 
             # also, we perform the necessary rotations
             # going from X or Y to Z basis
             for (i, st) in pauli.operations_as_set():
-                if (st == 'X' or st == 'Y') and i not in already_done:
+                if st != 'I' and i not in already_done:
                     # note that 'i' is the *logical* index
                     # corresponding to the pauli.
                     if cq is not None:
@@ -950,9 +950,9 @@ class GroupedPauliSetting:
                     # due to another term, don't do it again!
                     already_done.append(i)
 
-        if self.method != 'QC':
-            self.pure_pyquil_program = Program(prog)
-        else:
+        self.pure_pyquil_program = Program(prog)
+
+        if self.method == 'QC':
             # measure the qubits and assign the result
             # to classical register ro
             for i in range(self.n_qubits):
@@ -967,96 +967,16 @@ class GroupedPauliSetting:
             # to get operator measurement by sampling
             prog2.wrap_in_numshots_loop(shots=self.shotN)
 
-            if qc.name[-4:] == 'yqvm':
-                self.pyqvm_program = prog2
-            else:
-                self.pyquil_executable = qc.compile(prog2)
+            self.pyqvm_program = prog2
 
-        # now about calibration
-        if self.calibration and self.method != 'QC':
-            # turn off calibration if not QC.
-            self.calibration = False
-        if self.calibration:
-            # prepare and run the calibration experiments
-            prog = Program()
-            ro = prog.declare('ro',
-                    memory_type='BIT',
-                    memory_size=self.n_qubits)
-
-            if active_reset:
-                if not qc.name[-4:] == 'yqvm':
-                    # in case of PyQVM, can not contain reset statement
-                    prog += RESET()
-
-            # circuit which produces reference state,
-            # which is in the case of calibration experiments
-            # the same as the out_operators.
-            already_done = []
-            for pauli in list_gsuit_paulis:
-                # also, we perform the necessary rotations
-                # going to X/Y/Z =1 state
-                for (i, st) in pauli.operations_as_set():
-                    if (st == 'X' or st == 'Y') and i not in already_done:
-                        # note that 'i' is the *logical* index
-                        # corresponding to the pauli.
-                        if cq is not None:
-                            # if the logical qubit should be remapped
-                            # to physical qubits, access this cq
-                            prog += pauli_meas(cq[i], st).dagger()
-                        else:
-                            prog += pauli_meas(i, st).dagger()
-                        # if we already have rotated the basis
-                        # due to another term, don't do it again!
-                        already_done.append(i)
-            # measurement now
-            already_done = []
-            for pauli in list_gsuit_paulis:
-                # also, we perform the necessary rotations
-                # going from X or Y to Z basis
-                for (i, st) in pauli.operations_as_set():
-                    if (st == 'X' or st == 'Y') and i not in already_done:
-                        # note that 'i' is the *logical* index
-                        # corresponding to the pauli.
-                        if cq is not None:
-                            # if the logical qubit should be remapped
-                            # to physical qubits, access this cq
-                            prog += pauli_meas(cq[i], st)
-                        else:
-                            prog += pauli_meas(i, st)
-                        # if we already have rotated the basis
-                        # due to another term, don't do it again!
-                        already_done.append(i)
-
-            # measure the qubits and assign the result
-            # to classical register ro
-            for i in range(self.n_qubits):
-                if cq is not None:
-                    prog += MEASURE(cq[i], ro[i])
-                else:
-                    prog += MEASURE(i, ro[i])
-
-            prog2 = percolate_declares(prog)
-            # wrap in shotN number of executions on the qc,
-            # to get operator measurement by sampling
-            prog2.wrap_in_numshots_loop(shots=self.shotN)
-
-            if qc.name[-4:] == 'yqvm':
-                self.pyqvm_program = prog2
-                bitstrings = qc.run(self.pyqvm_program)
             # compile to native quil if it's not a PYQVM
-            else:
-                pyquil_executable = qc.compile(prog2)
-                bitstrings = qc.run(pyquil_executable)
-            # start data processing
-            # this matrix computes the pauli string parity,
-            # and stores that for each bitstring
-            is_odd = np.mod(bitstrings.dot(self.parity_matrix), 2)
-            # if the parity is odd, the bitstring gives a -1 eigenvalue,
-            # and +1 vice versa.
-            # sum over all bitstrings, average over shotN shots,
-            # and weigh each pauli string by its coefficient
-            e_array = 1 - 2*np.sum(is_odd, axis=0)/self.shotN
-            self.calibration_norms = e_array
+            if not qc.name[-4:] == 'yqvm':
+                nq_program = qc.compiler.quil_to_native_quil(prog2)
+                # if self.verbose:  # debugging purposes
+                #    print('')
+                #    print(nq_program.native_quil_metadata)
+                self.pyquil_executable = \
+                        qc.compiler.native_quil_to_executable(nq_program)
 
     def run_experiment(self, qc: Union[QuantumComputer, None], angles=None):
         """
@@ -1143,16 +1063,15 @@ class GroupedPauliSetting:
         # sum over all bitstrings, average over shotN shots,
         # and weigh each pauli string by its coefficient
         e_array = 1 - 2*np.sum(is_odd, axis=0)/self.shotN
-        if self.calibration:
-            e_array = e_array/self.calibration_norms
+        E = e_array.dot(np.array(self.coefficients)).real
         term_es = {}
-        for key, _e in zip(self.term_keys, e_array) :
-            term_es[key] = _e
+        for _id, _e in zip(self.term_ids, e_array) :
+            term_es[_id] = _e
         # if self.verbose:  # dev only
         #    print('evaluating bitstrings took '+str(time.time()-t)+' seconds')
         # end data processing
 
-        return term_es
+        return E, term_es
 
     @staticmethod
     def construct_parity_matrix(pauli_list, n_qubits):

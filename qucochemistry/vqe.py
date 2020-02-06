@@ -247,12 +247,6 @@ class VQEexperiment:
         # whether to do tomography or just calculate the wavefunction
         self.tomography = tomography
 
-        # initialize offset for pauli terms with identity.
-        # this serves to avoid doing simulation for the identity
-        # operator, which always yields unity times the coefficient
-        # due to wavefunction normalization.
-        self.offset = 0
-
         # set empty circuit unitary.
         # This is used for the direct linear algebraic methods.
         self.circuit_unitary = None
@@ -367,7 +361,6 @@ class VQEexperiment:
         re-compiling the tomography experiments
         is required to affect the outcome.
         """
-        self.offset = 0
         # use Forest's sorting algo from the Tomography suite
         # to group Pauli measurements together
         settings = []
@@ -375,11 +368,8 @@ class VQEexperiment:
             pauli_list = self.pauli_list
 
         for term in pauli_list:
-            # if the Pauli term is an identity operator,
-            # add the term's coefficient directly to the VQE class' offset
-            if len(term.operations_as_set()) == 0:
-                self.offset += term.coefficient.real
-            else:
+            # skip an identity operator,
+            if len(term.operations_as_set()) > 0:
                 # initial state and term pair.
                 settings.append(ExperimentSetting(
                         TensorProductState(),
@@ -442,6 +432,7 @@ class VQEexperiment:
         self.experiment_list = Experiment(grouped_settings, prog)
         print('Number of tomography experiments: ',
                 len(self.experiment_list))
+        # calibration expreimental results.
         self.calibrations = self.qc.calibrate(self.experiment_list)
 
     def run_experiments(self, angles):
@@ -502,7 +493,8 @@ class VQEexperiment:
                 key = term.operations_as_set()
                 if len(key) > 0:
                      E += term.coefficient*self.term_es[key]
-            E += self.offset
+                else:
+                    E += term.coefficient
 
         elif self.method == 'WFS':
             # In the direct WFS method without tomography,

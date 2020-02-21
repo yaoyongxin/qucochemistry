@@ -967,10 +967,21 @@ class GroupedPauliSetting:
             # to get operator measurement by sampling
             prog2.wrap_in_numshots_loop(shots=self.shotN)
 
+            # print(self.term_keys)
+            # print circuits:
+            # from pyquil.latex import to_latex
+            # print(to_latex(prog2))
+            # input()
+
+
             if qc.name[-4:] == 'yqvm':
                 self.pyqvm_program = prog2
             else:
                 self.pyquil_executable = qc.compile(prog2)
+
+            # print("compiled")
+            # print(to_latex(qc.compiler.quil_to_native_quil(prog2)))
+            # input()
 
         # now about calibration
         if self.calibration and self.method != 'QC':
@@ -1057,6 +1068,7 @@ class GroupedPauliSetting:
             # and weigh each pauli string by its coefficient
             e_array = 1 - 2*np.sum(is_odd, axis=0)/self.shotN
             self.calibration_norms = e_array
+            print(f"calibration_norms: {e_array}")
 
     def run_experiment(self, qc: Union[QuantumComputer, None], angles=None):
         """

@@ -178,6 +178,7 @@ class VQEexperiment:
             self.shotN = int(shotN)
         else:
             raise TypeError('shotN must be an integer or float')
+        print(f"shots = {self.shotN}")
 
         # simulation method. Choose from
         methodoptions = ['WFS', 'linalg', 'QC', 'Numpy']
